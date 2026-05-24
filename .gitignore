@@ -44,6 +44,9 @@ pubspec.lock
 coverage/
 *.lcov
 
+# Design docs (local reference only)
+vision-ai-design.md
+
 # OS
 .DS_Store
 Thumbs.db
