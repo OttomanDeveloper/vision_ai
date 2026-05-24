@@ -1,55 +1,58 @@
 # vision_ai
 
-On-device hand gesture recognition and facial emotion detection for Flutter. Runs at 25+ FPS with zero cloud dependencies.
+On-device hand gesture recognition and facial emotion detection for Flutter. Runs at 25-30 FPS with zero cloud dependencies.
+
+[![pub package](https://img.shields.io/pub/v/vision_ai.svg)](https://pub.dev/packages/vision_ai)
+[![license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/OttomanDeveloper/vision_ai/main/assets/media/feature_banner.svg" alt="vision_ai banner" width="100%"/>
+</p>
 
 ## Features
 
-- **Hand Gesture Recognition** — 13 built-in gestures + unlimited custom gestures
-- **Facial Emotion Detection** — 7 universal emotions with confidence scores
-- **Face Contours** — 133-point face mesh (outline, eyes, lips, eyebrows, nose)
-- **Face Landmarks** — 10-point lightweight detection (works with tracking)
-- **Blink Detection** — detects eye blinks from open/close transitions
-- **Head Nod/Shake** — detects yes/no head gestures from Euler angle oscillations
-- **Face Distance** — estimates camera-to-face distance from bounding box geometry
-- **Emission Throttling** — configurable results/sec to balance smoothness vs CPU
-- **Bitmap Pooling** — reuses allocations to minimize GC pauses
-- **Real-time** — 20-30 FPS on modern Android devices
-- **On-device** — No server, no API keys, no internet required
-- **Combined** — Run hand + face detection simultaneously on the same camera feed
+### Hand Detection
+- **13 built-in gestures** — fist, open palm, peace, thumbs up/down, pointing up, I love you, ok, counting 1-5
+- **Custom gestures** — define your own with finger state patterns and wildcards
+- **21 hand landmarks** — normalized image coords + world coordinates in meters
+- **Per-finger tracking** — extended/closed state for all 5 fingers
+- **Hand bounding box** — computed from landmark min/max
+- **Motion tracking** — velocity, direction (8 compass points), speed categories
+- **Two-hand interaction** — detect pinch, clap, and hands touching
+- **Gesture filtering** — allow/deny lists and per-gesture confidence thresholds
+- **World measurements** — real distances in cm (pinch gap, hand span)
 
-## Supported Gestures
+### Face Detection
+- **7 emotion classes** — happy, sad, angry, surprised, disgusted, fearful, neutral
+- **15 face contour types** — full face mesh (outline, eyes, lips, eyebrows, nose, cheeks)
+- **10 landmark points** — eyes, nose, mouth, ears, cheeks
+- **Face tracking** — stable IDs across frames
+- **Blink detection** — per-eye with duration tracking
+- **Head nod/shake** — yes/no gesture detection from Euler angles
+- **Distance estimation** — camera-to-face distance via pinhole model
+- **Attention scoring** — combines eye openness, orientation, and head stability
+- **Accurate mode** — ML Kit's high-quality detection for distant/angled faces
 
-| Gesture | Enum | Source |
-|---------|------|--------|
-| Fist | `Gesture.fist` | MediaPipe |
-| Open Hand | `Gesture.openHand` | MediaPipe |
-| Peace / Victory | `Gesture.peace` | MediaPipe |
-| Thumbs Up | `Gesture.thumbsUp` | MediaPipe |
-| Thumbs Down | `Gesture.thumbsDown` | MediaPipe |
-| Pointing Up | `Gesture.pointingUp` | MediaPipe |
-| I Love You | `Gesture.iLoveYou` | MediaPipe |
-| OK | `Gesture.ok` | Custom classifier |
-| One through Five | `Gesture.one` - `Gesture.five` | Custom classifier |
-| User-defined | `Gesture.custom` | Your pattern |
+### Performance
+- **25-30 FPS** on mid-range devices
+- **GPU acceleration** with automatic CPU fallback
+- **Buffer pooling** — reuses allocations to minimize GC pressure
+- **Emission throttling** — configurable results/sec via `CameraConfig.maxResultsPerSecond`
+- **100% on-device** — no server, no API keys, no internet
 
-## Supported Emotions
+## Platform Support
 
-| Emotion | Enum | Reliability |
-|---------|------|-------------|
-| Happy | `Emotion.happy` | High |
-| Sad | `Emotion.sad` | Medium |
-| Angry | `Emotion.angry` | Medium |
-| Surprised | `Emotion.surprised` | High |
-| Disgusted | `Emotion.disgusted` | Low |
-| Fearful | `Emotion.fearful` | Low |
-| Neutral | `Emotion.neutral` | High |
+| Platform | Status | Min Version |
+|----------|--------|-------------|
+| Android  | Supported | API 24 (Android 7.0) |
+| iOS      | Supported | iOS 12.0 |
 
 ## Installation
 
 ```yaml
 dependencies:
   vision_ai: ^0.1.0
-  vision_ai_flutter: ^0.1.0  # Optional: pre-built UI overlay widgets
+  vision_ai_flutter: ^0.1.0  # Optional: pre-built overlay widgets
 ```
 
 ### Android Setup
@@ -60,7 +63,14 @@ Add camera permission to `android/app/src/main/AndroidManifest.xml`:
 <uses-permission android:name="android.permission.CAMERA" />
 ```
 
-Minimum SDK: 24 (Android 7.0)
+### iOS Setup
+
+Add camera usage description to `ios/Runner/Info.plist`:
+
+```xml
+<key>NSCameraUsageDescription</key>
+<string>Camera access is needed for hand gesture and face detection.</string>
+```
 
 ## Quick Start
 
@@ -133,11 +143,12 @@ final vision = VisionAi.hand(
 VisionAiCameraView(
   controller: vision,
   textureId: textureId,
-  showHandLandmarks: true,    // Red dots + green lines
-  showFaceBoundingBox: true,   // Cyan rectangle
-  showFaceContours: true,      // 133-point face mesh
-  showGestureLabel: true,      // Gesture name overlay
-  showEmotionLabel: true,      // Emotion name overlay
+  showHandLandmarks: true,
+  showHandBoundingBox: true,
+  showFaceBoundingBox: true,
+  showFaceContours: true,
+  showGestureLabel: true,
+  showEmotionLabel: true,
 )
 ```
 
@@ -151,82 +162,123 @@ vision.results.listen((result) {
   if (face != null) {
     final blink = blinkDetector.update(face, result.timestampMs);
     if (blink != null) {
-      print('Blinked: ${blink.eye}'); // left, right, or both
+      print('Blinked: ${blink.eye} (${blink.durationMs}ms)');
     }
   }
 });
 ```
 
-### Head nod/shake detection
+### Attention scoring
 
 ```dart
-final headDetector = HeadGestureDetector();
+final scorer = AttentionScorer();
 
 vision.results.listen((result) {
   final face = result.primaryFace;
   if (face != null) {
-    final gesture = headDetector.update(face, result.timestampMs);
-    if (gesture != null) {
-      print(gesture.gesture == HeadGesture.nod ? 'Yes!' : 'No!');
+    final attention = scorer.update(face, result.timestampMs);
+    if (attention != null) {
+      print('Attention: ${attention.score} (${attention.level.name})');
     }
   }
 });
 ```
 
-### Face distance estimation
+### Hand motion tracking
 
 ```dart
-final distanceEstimator = FaceDistanceEstimator();
+final tracker = HandMotionTracker();
 
 vision.results.listen((result) {
-  final face = result.primaryFace;
-  if (face != null) {
-    final estimate = distanceEstimator.estimate(face, result.imageSize);
-    if (estimate != null) {
-      print('${estimate.distanceCm}cm (${estimate.zone.name})');
+  final hand = result.primaryHand;
+  if (hand != null) {
+    final motion = tracker.update(hand, result.timestampMs);
+    if (motion != null) {
+      print('${motion.speed}/s ${motion.direction.name} (${motion.state.name})');
     }
   }
 });
+```
+
+### World coordinate measurements
+
+```dart
+vision.results.listen((result) {
+  final hand = result.primaryHand;
+  if (hand != null && hand.worldLandmarks.length >= 21) {
+    final pinch = hand.worldLandmarks[HandLandmarkIndex.thumbTip]
+        .distanceTo(hand.worldLandmarks[HandLandmarkIndex.indexTip]);
+    print('Pinch gap: ${(pinch * 100).toStringAsFixed(1)}cm');
+  }
+});
+```
+
+### Gesture filtering
+
+```dart
+final vision = VisionAi.hand(
+  config: HandConfig(
+    deniedGestures: {Gesture.fist, Gesture.openHand},
+    gestureThresholds: {Gesture.thumbsUp: 0.8, Gesture.peace: 0.7},
+  ),
+);
 ```
 
 ### Emission throttling
 
 ```dart
-// Limit to 10 results/sec to reduce main thread work.
-// Set 0 for no limit (smoothest landmark tracking).
 final vision = VisionAi(
   hand: HandConfig(),
   camera: CameraConfig(maxResultsPerSecond: 10),
 );
 ```
 
+## Supported Gestures
+
+| Gesture | Enum | Source |
+|---------|------|--------|
+| Fist | `Gesture.fist` | MediaPipe |
+| Open Hand | `Gesture.openHand` | MediaPipe |
+| Peace / Victory | `Gesture.peace` | MediaPipe |
+| Thumbs Up | `Gesture.thumbsUp` | MediaPipe |
+| Thumbs Down | `Gesture.thumbsDown` | MediaPipe |
+| Pointing Up | `Gesture.pointingUp` | MediaPipe |
+| I Love You | `Gesture.iLoveYou` | MediaPipe |
+| OK | `Gesture.ok` | Custom classifier |
+| One through Five | `Gesture.one` - `Gesture.five` | Custom classifier |
+| User-defined | `Gesture.custom` | Your pattern |
+
+## Supported Emotions
+
+| Emotion | Enum | Reliability |
+|---------|------|-------------|
+| Happy | `Emotion.happy` | High |
+| Sad | `Emotion.sad` | Medium |
+| Angry | `Emotion.angry` | Medium |
+| Surprised | `Emotion.surprised` | High |
+| Disgusted | `Emotion.disgusted` | Low |
+| Fearful | `Emotion.fearful` | Low |
+| Neutral | `Emotion.neutral` | High |
+
+## Architecture
+
+All ML inference runs on-device:
+
+- **Hand gestures**: MediaPipe Gesture Recognizer (~8MB model, GPU delegate)
+- **Face detection**: Google ML Kit Face Detection
+- **Emotion classification**: TFLite CNN on FER2013 (~2MB model)
+
+Camera frames are processed natively (CameraX on Android, AVFoundation on iOS). Only lightweight results (landmarks, labels, scores) cross the platform channel -- frame data never leaves the native side.
+
 ## Camera Preview
 
-`VisionAi.start()` returns a texture ID. Render it with Flutter's `Texture` widget:
+`VisionAi.start()` returns a texture ID. Render with Flutter's `Texture` widget:
 
 ```dart
 Texture(textureId: textureId)
 ```
 
-Or use `VisionAiCameraView` from `vision_ai_flutter` for a complete solution with overlays.
-
-## Platform Support
-
-| Platform | Status |
-|----------|--------|
-| Android | Supported (API 24+) |
-| iOS | Planned (v1.1) |
-| Web | Planned (v1.2) |
-
-## Architecture
-
-All ML inference runs on the device GPU/NPU:
-
-- **Hand gestures**: MediaPipe Gesture Recognizer (~8MB model)
-- **Face detection**: Google ML Kit Face Detection
-- **Emotion classification**: TFLite CNN on FER2013 (~2MB model)
-
-Camera frames are processed natively via CameraX. Only lightweight results (landmarks, labels, scores) cross the platform channel -- frame data never leaves the native side.
+Or use `VisionAiCameraView` from `vision_ai_flutter` for overlays.
 
 ## License
 

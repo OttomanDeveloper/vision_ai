@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 600" width="500" height="600">
+  <defs>
+    <style>
+      .bg { fill: #1a1a2e; }
+      .phone { fill: #16213e; stroke: #0f3460; stroke-width: 2; rx: 20; }
+      .screen { fill: #0a0a1a; rx: 8; }
+      .face-box { fill: none; stroke: #00bcd4; stroke-width: 2.5; rx: 6; }
+      .contour { fill: none; stroke: #66bb6a; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+      .contour-dot { fill: #66bb6a; }
+      .landmark { fill: #ff9800; }
+      .title { fill: #ffffff; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 16px; font-weight: bold; }
+      .emotion-bg { fill: #1565c0; rx: 12; }
+      .emotion-text { fill: #ffffff; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 16px; font-weight: bold; }
+      .stats-bg { fill: #000000; opacity: 0.6; rx: 6; }
+      .stats { fill: #bdbdbd; font-family: 'SF Mono', 'Consolas', monospace; font-size: 9px; }
+      .stats-val { fill: #ffffff; }
+      .landmark-label { fill: #ff9800; font-family: 'SF Mono', 'Consolas', monospace; font-size: 7px; opacity: 0.8; }
+      .euler { fill: #e0e0e0; font-family: 'SF Mono', 'Consolas', monospace; font-size: 8px; }
+      .angle-line { stroke: #ff5722; stroke-width: 1; stroke-dasharray: 4,2; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="500" height="600"/>
+
+  <!-- Phone frame -->
+  <rect class="phone" x="75" y="30" width="350" height="540"/>
+  <rect class="screen" x="85" y="50" width="330" height="500"/>
+
+  <!-- Camera notch -->
+  <rect fill="#0f3460" x="210" y="30" width="80" height="8" rx="4"/>
+
+  <!-- Face bounding box -->
+  <rect class="face-box" x="170" y="130" width="160" height="200"/>
+
+  <!-- Face contour (oval shape) -->
+  <path class="contour" d="M250,140 C290,140 330,170 330,230 C330,290 310,330 280,340 C260,350 240,350 220,340 C190,330 170,290 170,230 C170,170 210,140 250,140"/>
+
+  <!-- Left eyebrow -->
+  <path class="contour" d="M195,185 C205,175 220,172 235,178"/>
+  <!-- Right eyebrow -->
+  <path class="contour" d="M265,178 C280,172 295,175 305,185"/>
+
+  <!-- Left eye contour -->
+  <ellipse class="contour" cx="215" cy="205" rx="18" ry="10"/>
+  <!-- Right eye contour -->
+  <ellipse class="contour" cx="285" cy="205" rx="18" ry="10"/>
+
+  <!-- Nose bridge -->
+  <path class="contour" d="M250,195 L248,225 L245,245"/>
+  <!-- Nose bottom -->
+  <path class="contour" d="M232,248 C240,255 260,255 268,248"/>
+
+  <!-- Upper lip -->
+  <path class="contour" d="M222,275 C235,268 250,265 265,268 C278,275 278,275 278,275"/>
+  <!-- Lower lip -->
+  <path class="contour" d="M222,275 C235,290 265,290 278,275"/>
+
+  <!-- Contour dots -->
+  <circle class="contour-dot" cx="250" cy="140" r="2"/>
+  <circle class="contour-dot" cx="270" cy="142" r="2"/>
+  <circle class="contour-dot" cx="290" cy="150" r="2"/>
+  <circle class="contour-dot" cx="310" cy="165" r="2"/>
+  <circle class="contour-dot" cx="325" cy="190" r="2"/>
+  <circle class="contour-dot" cx="330" cy="220" r="2"/>
+  <circle class="contour-dot" cx="325" cy="260" r="2"/>
+  <circle class="contour-dot" cx="310" cy="300" r="2"/>
+  <circle class="contour-dot" cx="280" cy="340" r="2"/>
+  <circle class="contour-dot" cx="250" cy="348" r="2"/>
+  <circle class="contour-dot" cx="220" cy="340" r="2"/>
+  <circle class="contour-dot" cx="190" cy="300" r="2"/>
+  <circle class="contour-dot" cx="175" cy="260" r="2"/>
+  <circle class="contour-dot" cx="170" cy="220" r="2"/>
+  <circle class="contour-dot" cx="175" cy="190" r="2"/>
+  <circle class="contour-dot" cx="190" cy="165" r="2"/>
+  <circle class="contour-dot" cx="210" cy="150" r="2"/>
+  <circle class="contour-dot" cx="230" cy="142" r="2"/>
+
+  <!-- 10 Face landmarks (orange dots) -->
+  <circle class="landmark" cx="215" cy="205" r="4"/> <!-- leftEye -->
+  <circle class="landmark" cx="285" cy="205" r="4"/> <!-- rightEye -->
+  <circle class="landmark" cx="250" cy="240" r="4"/> <!-- noseBase -->
+  <circle class="landmark" cx="222" cy="275" r="4"/> <!-- mouthLeft -->
+  <circle class="landmark" cx="278" cy="275" r="4"/> <!-- mouthRight -->
+  <circle class="landmark" cx="250" cy="290" r="4"/> <!-- mouthBottom -->
+  <circle class="landmark" cx="168" cy="215" r="4"/> <!-- leftEar -->
+  <circle class="landmark" cx="332" cy="215" r="4"/> <!-- rightEar -->
+  <circle class="landmark" cx="195" cy="260" r="4"/> <!-- leftCheek -->
+  <circle class="landmark" cx="305" cy="260" r="4"/> <!-- rightCheek -->
+
+  <!-- Landmark labels -->
+  <text class="landmark-label" x="215" y="195" text-anchor="middle">L-Eye</text>
+  <text class="landmark-label" x="285" y="195" text-anchor="middle">R-Eye</text>
+  <text class="landmark-label" x="250" y="255" text-anchor="middle">Nose</text>
+
+  <!-- Euler angle indicator -->
+  <line class="angle-line" x1="250" y1="130" x2="250" y2="110"/>
+  <line class="angle-line" x1="250" y1="110" x2="260" y2="115"/>
+  <text class="euler" x="265" y="115">Pitch: 5°</text>
+
+  <!-- Emotion label -->
+  <rect class="emotion-bg" x="180" y="455" width="140" height="32"/>
+  <text class="emotion-text" x="250" y="477" text-anchor="middle">HAPPY 😊 98%</text>
+
+  <!-- Stats overlay -->
+  <rect class="stats-bg" x="300" y="360" width="105" height="115"/>
+  <text class="stats" x="308" y="375">Inference: <tspan class="stats-val">18ms</tspan></text>
+  <text class="stats" x="308" y="387">Faces: <tspan class="stats-val">1</tspan></text>
+  <text class="stats" x="308" y="399">Emotion: <tspan class="stats-val">happy</tspan></text>
+  <text class="stats" x="308" y="411">Emotion %: <tspan class="stats-val">98%</tspan></text>
+  <text class="stats" x="308" y="423">Smile: <tspan class="stats-val">95%</tspan></text>
+  <text class="stats" x="308" y="435">Blink: <tspan class="stats-val">both (120ms)</tspan></text>
+  <text class="stats" x="308" y="447">Distance: <tspan class="stats-val">45cm</tspan></text>
+  <text class="stats" x="308" y="459">Attention: <tspan class="stats-val">87% (high)</tspan></text>
+
+  <!-- Feature callouts -->
+  <rect fill="#e65100" opacity="0.15" x="90" y="365" width="130" height="18" rx="4"/>
+  <text fill="#ff9800" font-family="'SF Pro', sans-serif" font-size="10" x="95" y="378">15 Contour Types</text>
+  <rect fill="#1565c0" opacity="0.15" x="90" y="388" width="130" height="18" rx="4"/>
+  <text fill="#42a5f5" font-family="'SF Pro', sans-serif" font-size="10" x="95" y="401">10 Landmark Points</text>
+  <rect fill="#2e7d32" opacity="0.15" x="90" y="411" width="130" height="18" rx="4"/>
+  <text fill="#66bb6a" font-family="'SF Pro', sans-serif" font-size="10" x="95" y="424">Blink + Head Nod/Shake</text>
+  <rect fill="#6a1b9a" opacity="0.15" x="90" y="434" width="130" height="18" rx="4"/>
+  <text fill="#ab47bc" font-family="'SF Pro', sans-serif" font-size="10" x="95" y="447">Attention Scoring</text>
+
+  <!-- Title below phone -->
+  <text class="title" x="250" y="590" text-anchor="middle">Face Detection + Emotion</text>
+</svg>

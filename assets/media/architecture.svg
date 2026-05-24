@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      .bg { fill: #0d1117; }
+      .box { rx: 8; stroke-width: 1.5; }
+      .dart-box { fill: #1a237e; stroke: #42a5f5; }
+      .native-box { fill: #1b5e20; stroke: #66bb6a; }
+      .ml-box { fill: #b71c1c; stroke: #ef5350; }
+      .detector-box { fill: #4a148c; stroke: #ab47bc; }
+      .ui-box { fill: #e65100; stroke: #ff9800; }
+      .channel-box { fill: #263238; stroke: #546e7a; }
+      .box-title { fill: #ffffff; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 11px; font-weight: bold; }
+      .box-sub { fill: #b0bec5; font-family: 'SF Mono', 'Consolas', monospace; font-size: 8px; }
+      .section-title { fill: #ffffff; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 14px; font-weight: bold; }
+      .section-badge { rx: 4; }
+      .arrow { stroke: #546e7a; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+      .arrow-data { stroke: #00e676; stroke-width: 1.5; fill: none; marker-end: url(#arrowhead-green); stroke-dasharray: 6,3; }
+      .note { fill: #616161; font-family: 'SF Pro', sans-serif; font-size: 8px; font-style: italic; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#546e7a"/>
+    </marker>
+    <marker id="arrowhead-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#00e676"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="800" height="500"/>
+
+  <!-- Section: Flutter / Dart -->
+  <rect class="section-badge" x="15" y="12" width="85" height="20" fill="#1a237e"/>
+  <text class="section-title" x="20" y="27">Flutter</text>
+
+  <!-- VisionAi Controller -->
+  <rect class="box dart-box" x="20" y="45" width="140" height="55"/>
+  <text class="box-title" x="90" y="65" text-anchor="middle">VisionAi</text>
+  <text class="box-sub" x="90" y="78" text-anchor="middle">start() stop() dispose()</text>
+  <text class="box-sub" x="90" y="88" text-anchor="middle">results → Stream</text>
+
+  <!-- Dart Detectors -->
+  <rect class="box detector-box" x="20" y="120" width="140" height="105"/>
+  <text class="box-title" x="90" y="140" text-anchor="middle">Dart Detectors</text>
+  <text class="box-sub" x="90" y="155" text-anchor="middle">BlinkDetector</text>
+  <text class="box-sub" x="90" y="167" text-anchor="middle">HeadGestureDetector</text>
+  <text class="box-sub" x="90" y="179" text-anchor="middle">AttentionScorer</text>
+  <text class="box-sub" x="90" y="191" text-anchor="middle">HandMotionTracker</text>
+  <text class="box-sub" x="90" y="203" text-anchor="middle">FaceDistanceEstimator</text>
+  <text class="box-sub" x="90" y="215" text-anchor="middle">TwoHandDetector</text>
+
+  <!-- UI Package -->
+  <rect class="box ui-box" x="20" y="245" width="140" height="85"/>
+  <text class="box-title" x="90" y="265" text-anchor="middle">vision_ai_flutter</text>
+  <text class="box-sub" x="90" y="280" text-anchor="middle">VisionAiCameraView</text>
+  <text class="box-sub" x="90" y="292" text-anchor="middle">HandLandmarkPainter</text>
+  <text class="box-sub" x="90" y="304" text-anchor="middle">FaceOverlayPainter</text>
+  <text class="box-sub" x="90" y="316" text-anchor="middle">FaceContourPainter</text>
+
+  <!-- Platform Channel -->
+  <rect class="box channel-box" x="200" y="45" width="120" height="55"/>
+  <text class="box-title" x="260" y="65" text-anchor="middle">Platform Channel</text>
+  <text class="box-sub" x="260" y="78" text-anchor="middle">MethodChannel</text>
+  <text class="box-sub" x="260" y="88" text-anchor="middle">EventChannel</text>
+
+  <line class="arrow" x1="160" y1="72" x2="198" y2="72"/>
+  <line class="arrow-data" x1="200" y1="82" x2="162" y2="82"/>
+
+  <!-- Section: Native -->
+  <rect class="section-badge" x="365" y="12" width="85" height="20" fill="#1b5e20"/>
+  <text class="section-title" x="370" y="27">Native</text>
+
+  <!-- Plugin Entry -->
+  <rect class="box native-box" x="360" y="45" width="150" height="55"/>
+  <text class="box-title" x="435" y="65" text-anchor="middle">VisionAiPlugin</text>
+  <text class="box-sub" x="435" y="78" text-anchor="middle">Kotlin (Android)</text>
+  <text class="box-sub" x="435" y="88" text-anchor="middle">Swift (iOS)</text>
+
+  <line class="arrow" x1="320" y1="72" x2="358" y2="72"/>
+  <line class="arrow-data" x1="360" y1="82" x2="322" y2="82"/>
+
+  <!-- Camera Manager -->
+  <rect class="box native-box" x="360" y="120" width="150" height="50"/>
+  <text class="box-title" x="435" y="140" text-anchor="middle">CameraManager</text>
+  <text class="box-sub" x="435" y="153" text-anchor="middle">CameraX / AVCaptureSession</text>
+
+  <line class="arrow" x1="435" y1="100" x2="435" y2="118"/>
+
+  <!-- Frame Processor -->
+  <rect class="box native-box" x="360" y="190" width="150" height="50"/>
+  <text class="box-title" x="435" y="210" text-anchor="middle">FrameProcessor</text>
+  <text class="box-sub" x="435" y="223" text-anchor="middle">Analysis Thread / Queue</text>
+
+  <line class="arrow" x1="435" y1="170" x2="435" y2="188"/>
+
+  <!-- Section: ML Models -->
+  <rect class="section-badge" x="565" y="12" width="85" height="20" fill="#b71c1c"/>
+  <text class="section-title" x="570" y="27">ML Models</text>
+
+  <!-- Hand Gesture -->
+  <rect class="box ml-box" x="560" y="45" width="220" height="75"/>
+  <text class="box-title" x="670" y="65" text-anchor="middle">Hand Gesture Recognition</text>
+  <text class="box-sub" x="670" y="80" text-anchor="middle">MediaPipe GestureRecognizer (8MB)</text>
+  <text class="box-sub" x="670" y="92" text-anchor="middle">8 built-in + custom gestures</text>
+  <text class="box-sub" x="670" y="104" text-anchor="middle">21 landmarks × 3D + world coords</text>
+
+  <line class="arrow" x1="510" y1="205" x2="558" y2="82"/>
+
+  <!-- Face Detection -->
+  <rect class="box ml-box" x="560" y="140" width="220" height="75"/>
+  <text class="box-title" x="670" y="160" text-anchor="middle">Face Detection + Emotion</text>
+  <text class="box-sub" x="670" y="175" text-anchor="middle">ML Kit FaceDetector (bundled)</text>
+  <text class="box-sub" x="670" y="187" text-anchor="middle">TFLite Emotion Model (2MB)</text>
+  <text class="box-sub" x="670" y="199" text-anchor="middle">15 contours · 10 landmarks · 7 emotions</text>
+
+  <line class="arrow" x1="510" y1="220" x2="558" y2="177"/>
+
+  <!-- Result Aggregator -->
+  <rect class="box native-box" x="360" y="260" width="150" height="45"/>
+  <text class="box-title" x="435" y="280" text-anchor="middle">ResultAggregator</text>
+  <text class="box-sub" x="435" y="293" text-anchor="middle">Throttle + Main Thread</text>
+
+  <line class="arrow" x1="435" y1="240" x2="435" y2="258"/>
+  <line class="arrow-data" x1="360" y1="282" x2="322" y2="82"/>
+
+  <!-- Features list at bottom -->
+  <rect fill="#1a1a2e" x="20" y="360" width="760" height="130" rx="8" stroke="#37474f" stroke-width="1"/>
+
+  <text fill="#ffffff" font-family="'SF Pro', sans-serif" font-size="12" font-weight="bold" x="40" y="382">Features</text>
+
+  <!-- Column 1 -->
+  <text fill="#42a5f5" font-family="'SF Pro', sans-serif" font-size="10" x="40" y="400">Hand Detection</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="40" y="413">13 built-in + custom gestures</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="40" y="425">21 landmarks (normalized + world)</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="40" y="437">Per-finger state tracking</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="40" y="449">Hand motion velocity/direction</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="40" y="461">Two-hand interaction (pinch/clap)</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="40" y="473">Gesture allow/deny filtering</text>
+
+  <!-- Column 2 -->
+  <text fill="#ef5350" font-family="'SF Pro', sans-serif" font-size="10" x="280" y="400">Face Detection</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="280" y="413">7 emotion classification (FER2013)</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="280" y="425">15 contour types (full face mesh)</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="280" y="437">10 landmark points</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="280" y="449">Blink detection</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="280" y="461">Head nod/shake detection</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="280" y="473">Attention scoring</text>
+
+  <!-- Column 3 -->
+  <text fill="#66bb6a" font-family="'SF Pro', sans-serif" font-size="10" x="520" y="400">Performance</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="520" y="413">25-30 FPS real-time processing</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="520" y="425">Bitmap/PixelBuffer pooling</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="520" y="437">Emission throttling (configurable)</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="520" y="449">GPU delegate with CPU fallback</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="520" y="461">100% on-device (no cloud)</text>
+  <text fill="#90a4ae" font-family="'SF Pro', sans-serif" font-size="9" x="520" y="473">Android + iOS</text>
+</svg>

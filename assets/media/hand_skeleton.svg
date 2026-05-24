@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 600" width="500" height="600">
+  <defs>
+    <style>
+      .bg { fill: #1a1a2e; }
+      .phone { fill: #16213e; stroke: #0f3460; stroke-width: 2; rx: 20; }
+      .screen { fill: #0a0a1a; rx: 8; }
+      .line { stroke: #00e676; stroke-width: 2; stroke-linecap: round; }
+      .dot { fill: #ff1744; }
+      .palm-line { stroke: #00e676; stroke-width: 1.5; stroke-linecap: round; opacity: 0.6; }
+      .label { fill: #ffffff; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 13px; }
+      .label-bg { fill: #000000; opacity: 0.75; rx: 6; }
+      .title { fill: #ffffff; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 16px; font-weight: bold; }
+      .subtitle { fill: #9e9e9e; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 11px; }
+      .gesture-bg { fill: #000000; opacity: 0.85; rx: 12; }
+      .gesture-text { fill: #00e676; font-family: 'SF Pro', 'Segoe UI', sans-serif; font-size: 18px; font-weight: bold; }
+      .stats-bg { fill: #000000; opacity: 0.6; rx: 6; }
+      .stats { fill: #bdbdbd; font-family: 'SF Mono', 'Consolas', monospace; font-size: 9px; }
+      .stats-val { fill: #ffffff; }
+      .bbox { fill: none; stroke: #ffeb3b; stroke-width: 1.5; stroke-dasharray: 6,3; rx: 4; }
+      .finger-label { fill: #ff9800; font-family: 'SF Mono', 'Consolas', monospace; font-size: 8px; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect class="bg" width="500" height="600"/>
+
+  <!-- Phone frame -->
+  <rect class="phone" x="75" y="30" width="350" height="540"/>
+  <rect class="screen" x="85" y="50" width="330" height="500"/>
+
+  <!-- Camera notch -->
+  <rect fill="#0f3460" x="210" y="30" width="80" height="8" rx="4"/>
+
+  <!-- Hand skeleton - 21 landmarks -->
+  <!-- Wrist -->
+  <circle class="dot" cx="250" cy="420" r="5"/>
+
+  <!-- Thumb: wrist(0) → CMC(1) → MCP(2) → IP(3) → Tip(4) -->
+  <line class="line" x1="250" y1="420" x2="205" y2="390"/>
+  <line class="line" x1="205" y1="390" x2="175" y2="350"/>
+  <line class="line" x1="175" y1="350" x2="155" y2="310"/>
+  <line class="line" x1="155" y1="310" x2="140" y2="275"/>
+  <circle class="dot" cx="205" cy="390" r="4"/>
+  <circle class="dot" cx="175" cy="350" r="4"/>
+  <circle class="dot" cx="155" cy="310" r="4"/>
+  <circle class="dot" cx="140" cy="275" r="5"/>
+
+  <!-- Index: wrist(0) → MCP(5) → PIP(6) → DIP(7) → Tip(8) -->
+  <line class="line" x1="250" y1="420" x2="220" y2="320"/>
+  <line class="line" x1="220" y1="320" x2="210" y2="250"/>
+  <line class="line" x1="210" y1="250" x2="205" y2="200"/>
+  <line class="line" x1="205" y1="200" x2="200" y2="155"/>
+  <circle class="dot" cx="220" cy="320" r="4"/>
+  <circle class="dot" cx="210" cy="250" r="4"/>
+  <circle class="dot" cx="205" cy="200" r="4"/>
+  <circle class="dot" cx="200" cy="155" r="5"/>
+
+  <!-- Middle: wrist(0) → MCP(9) → PIP(10) → DIP(11) → Tip(12) -->
+  <line class="line" x1="250" y1="420" x2="255" y2="310"/>
+  <line class="line" x1="255" y1="310" x2="258" y2="235"/>
+  <line class="line" x1="258" y1="235" x2="260" y2="180"/>
+  <line class="line" x1="260" y1="180" x2="262" y2="135"/>
+  <circle class="dot" cx="255" cy="310" r="4"/>
+  <circle class="dot" cx="258" cy="235" r="4"/>
+  <circle class="dot" cx="260" cy="180" r="4"/>
+  <circle class="dot" cx="262" cy="135" r="5"/>
+
+  <!-- Ring: wrist(0) → MCP(13) → PIP(14) → DIP(15) → Tip(16) -->
+  <line class="line" x1="250" y1="420" x2="290" y2="315"/>
+  <line class="line" x1="290" y1="315" x2="300" y2="245"/>
+  <line class="line" x1="300" y1="245" x2="305" y2="195"/>
+  <line class="line" x1="305" y1="195" x2="310" y2="155"/>
+  <circle class="dot" cx="290" cy="315" r="4"/>
+  <circle class="dot" cx="300" cy="245" r="4"/>
+  <circle class="dot" cx="305" cy="195" r="4"/>
+  <circle class="dot" cx="310" cy="155" r="5"/>
+
+  <!-- Pinky: wrist(0) → MCP(17) → PIP(18) → DIP(19) → Tip(20) -->
+  <line class="line" x1="250" y1="420" x2="320" y2="330"/>
+  <line class="line" x1="320" y1="330" x2="335" y2="270"/>
+  <line class="line" x1="335" y1="270" x2="345" y2="225"/>
+  <line class="line" x1="345" y1="225" x2="350" y2="190"/>
+  <circle class="dot" cx="320" cy="330" r="4"/>
+  <circle class="dot" cx="335" cy="270" r="4"/>
+  <circle class="dot" cx="345" cy="225" r="4"/>
+  <circle class="dot" cx="350" cy="190" r="5"/>
+
+  <!-- Palm connections -->
+  <line class="palm-line" x1="220" y1="320" x2="255" y2="310"/>
+  <line class="palm-line" x1="255" y1="310" x2="290" y2="315"/>
+  <line class="palm-line" x1="290" y1="315" x2="320" y2="330"/>
+
+  <!-- Hand bounding box -->
+  <rect class="bbox" x="125" y="120" width="240" height="320"/>
+
+  <!-- Gesture label -->
+  <rect class="gesture-bg" x="155" y="68" width="190" height="36" rx="12"/>
+  <text class="gesture-text" x="250" y="92" text-anchor="middle">PEACE ✌️ 95%</text>
+
+  <!-- Finger state indicators -->
+  <text class="finger-label" x="133" y="270">T</text>
+  <text class="finger-label" x="193" y="148">I</text>
+  <text class="finger-label" x="255" y="128">M</text>
+  <text class="finger-label" x="316" y="148">R</text>
+  <text class="finger-label" x="356" y="183">P</text>
+
+  <!-- Stats overlay -->
+  <rect class="stats-bg" x="300" y="440" width="105" height="90"/>
+  <text class="stats" x="308" y="455">Inference: <tspan class="stats-val">12ms</tspan></text>
+  <text class="stats" x="308" y="467">Hands: <tspan class="stats-val">1</tspan></text>
+  <text class="stats" x="308" y="479">Gesture: <tspan class="stats-val">Peace</tspan></text>
+  <text class="stats" x="308" y="491">Confidence: <tspan class="stats-val">95%</tspan></text>
+  <text class="stats" x="308" y="503">Side: <tspan class="stats-val">Right</tspan></text>
+  <text class="stats" x="308" y="515">Fingers: <tspan class="stats-val">IM</tspan></text>
+
+  <!-- Title below phone -->
+  <text class="title" x="250" y="590" text-anchor="middle">Hand Gesture Recognition</text>
+</svg>

@@ -6,6 +6,7 @@ build/
 .idea/
 .metadata
 pubspec.lock
+pubspec_overrides.yaml
 
 # Android
 **/android/**/gradle-wrapper.jar

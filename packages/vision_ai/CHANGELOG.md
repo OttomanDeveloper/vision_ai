@@ -1,17 +1,44 @@
-## 0.1.0
+## 0.1.0 - 2026-05-24
 
-- Initial release (Android only)
-- Hand gesture recognition with 13 built-in gestures via MediaPipe Gesture Recognizer
-- Custom gesture support with finger state pattern matching
-- Facial emotion detection with 7 universal emotions via ML Kit + TFLite
-- Combined hand + face detection on a single camera feed at 20-30 FPS
-- On-device processing with GPU acceleration and CPU fallback
-- Bitmap pooling for reduced GC pressure (~55% fewer GC pauses)
-- Emission throttling via `CameraConfig.maxResultsPerSecond` (trade smoothness for CPU savings)
-- Face contour detection (all 15 ML Kit contour types including cheek centers)
-- 10 face landmark detection (eye centers, mouth corners, nose, ears, cheeks)
+### Hand Detection
+- 8 built-in gestures via MediaPipe Gesture Recognizer (fist, open palm, peace, thumbs up/down, pointing up, I love you)
+- 5 custom gestures via finger state pattern matching (ok, counting 1-5)
+- User-defined custom gestures with wildcard support
+- Per-gesture confidence filtering (allow/deny lists, per-gesture thresholds)
+- 21 hand landmarks (normalized + world coordinates in meters)
+- Per-finger state tracking (extended/closed)
+- Hand bounding box (computed from landmarks)
+- Hand motion velocity and direction tracking
+- Two-hand interaction detection (pinch, clap, touching)
+- World coordinate measurements (pinch distance, hand span in cm)
+
+### Face Detection
+- 7 emotion classification (angry, disgusted, fearful, happy, sad, surprised, neutral) via ML Kit + TFLite
+- 15 face contour types (full face mesh including cheek centers)
+- 10 face landmark points (eyes, nose, mouth, ears, cheeks)
+- Face tracking with stable IDs across frames
 - Blink detection from eye open probability transitions
 - Head nod/shake detection from Euler angle oscillations
-- Face distance estimation from bounding box geometry
-- Configurable overlay widgets via `vision_ai_flutter` (hand skeleton, face box, contours, labels)
-- Settings-rich example app with per-feature toggles for testing
+- Face distance estimation from bounding box geometry (pinhole camera model)
+- Attention scoring (eye openness + face orientation + head stability)
+- Accurate detection mode (ML Kit PERFORMANCE_MODE_ACCURATE)
+
+### Performance
+- 25-30 FPS real-time processing on mid-range devices
+- GPU acceleration with automatic CPU fallback
+- Bitmap pooling for reduced GC pressure
+- Emission throttling via `CameraConfig.maxResultsPerSecond`
+- On-device processing — zero cloud dependencies
+
+### Platform Support
+- Android (Kotlin, CameraX, MediaPipe, ML Kit, TFLite)
+- iOS (Swift, AVFoundation, MediaPipe, ML Kit, TFLite)
+
+### UI Package (vision_ai_flutter)
+- `VisionAiCameraView` composite widget with configurable overlays
+- Hand landmark skeleton painter
+- Hand bounding box painter
+- Face bounding box painter
+- Face contour painter (15 types)
+- Gesture label and emotion indicator widgets
+- Configurable overlay styles (colors, line widths)

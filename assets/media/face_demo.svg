@@ -1,0 +1,284 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <radialGradient id="face-skin" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#f0c8a8"/>
+      <stop offset="70%" stop-color="#d4a07a"/>
+      <stop offset="100%" stop-color="#b8845c"/>
+    </radialGradient>
+    <radialGradient id="nose-shade" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#deb896"/>
+      <stop offset="100%" stop-color="#c49470"/>
+    </radialGradient>
+    <linearGradient id="bg-face" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#0a0e1a"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="hair-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c1810"/>
+      <stop offset="100%" stop-color="#1a0e08"/>
+    </linearGradient>
+    <filter id="glow-cyan">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-orange">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-contour">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="face-shadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Dark background -->
+  <rect fill="url(#bg-face)" width="1080" height="1080"/>
+
+  <!-- Subtle grid -->
+  <g opacity="0.04">
+    <line x1="108" y1="0" x2="108" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="216" y1="0" x2="216" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="324" y1="0" x2="324" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="432" y1="0" x2="432" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="540" y1="0" x2="540" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="648" y1="0" x2="648" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="756" y1="0" x2="756" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="864" y1="0" x2="864" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="972" y1="0" x2="972" y2="1080" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="108" x2="1080" y2="108" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="216" x2="1080" y2="216" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="324" x2="1080" y2="324" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="432" x2="1080" y2="432" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="540" x2="1080" y2="540" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="648" x2="1080" y2="648" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="756" x2="1080" y2="756" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="864" x2="1080" y2="864" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="972" x2="1080" y2="972" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <!-- ============ REALISTIC FACE ============ -->
+  <g filter="url(#face-shadow)">
+    <!-- Hair -->
+    <ellipse fill="url(#hair-grad)" cx="540" cy="280" rx="230" ry="200"/>
+    <path fill="url(#hair-grad)" d="M310,320 C310,180 420,100 540,100 C660,100 770,180 770,320 C770,280 720,200 540,200 C360,200 310,280 310,320 Z"/>
+
+    <!-- Neck -->
+    <rect fill="#c49470" x="480" y="720" width="120" height="120" rx="20"/>
+
+    <!-- Face shape -->
+    <path fill="url(#face-skin)" d="
+      M540,220
+      C660,220 740,300 740,400
+      C740,520 720,620 680,680
+      C650,720 600,750 540,750
+      C480,750 430,720 400,680
+      C360,620 340,520 340,400
+      C340,300 420,220 540,220
+      Z
+    "/>
+
+    <!-- Jaw shadow -->
+    <path fill="#b87a55" opacity="0.2" d="M400,680 C430,720 480,750 540,750 C600,750 650,720 680,680 C720,620 740,560 740,500 C700,580 640,650 540,650 C440,650 380,580 340,500 C340,560 360,620 400,680 Z"/>
+
+    <!-- Forehead highlight -->
+    <ellipse fill="#f5d8c0" opacity="0.2" cx="540" cy="300" rx="120" ry="50"/>
+
+    <!-- Left eye area -->
+    <g>
+      <!-- Eye socket shadow -->
+      <ellipse fill="#b87a55" opacity="0.15" cx="440" cy="420" rx="55" ry="30"/>
+      <!-- Eye white -->
+      <ellipse fill="#f5f0eb" cx="440" cy="420" rx="38" ry="18"/>
+      <!-- Iris -->
+      <ellipse fill="#5a3820" cx="440" cy="420" rx="16" ry="16"/>
+      <!-- Pupil -->
+      <circle fill="#1a0a00" cx="440" cy="420" r="8"/>
+      <!-- Eye highlight -->
+      <circle fill="#ffffff" cx="448" cy="414" r="4" opacity="0.8"/>
+      <circle fill="#ffffff" cx="435" cy="418" r="2" opacity="0.5"/>
+      <!-- Upper eyelid line -->
+      <path fill="none" stroke="#8a5a3a" stroke-width="2" d="M402,415 C415,400 465,400 478,415"/>
+      <!-- Lower eyelid -->
+      <path fill="none" stroke="#b8845c" stroke-width="1" d="M405,425 C420,435 460,435 475,425"/>
+      <!-- Eyelashes -->
+      <path fill="none" stroke="#3a1a0a" stroke-width="1.5" d="M402,414 C415,398 465,398 478,414"/>
+    </g>
+
+    <!-- Right eye area -->
+    <g>
+      <ellipse fill="#b87a55" opacity="0.15" cx="640" cy="420" rx="55" ry="30"/>
+      <ellipse fill="#f5f0eb" cx="640" cy="420" rx="38" ry="18"/>
+      <ellipse fill="#5a3820" cx="640" cy="420" rx="16" ry="16"/>
+      <circle fill="#1a0a00" cx="640" cy="420" r="8"/>
+      <circle fill="#ffffff" cx="648" cy="414" r="4" opacity="0.8"/>
+      <circle fill="#ffffff" cx="635" cy="418" r="2" opacity="0.5"/>
+      <path fill="none" stroke="#8a5a3a" stroke-width="2" d="M602,415 C615,400 665,400 678,415"/>
+      <path fill="none" stroke="#b8845c" stroke-width="1" d="M605,425 C620,435 660,435 675,425"/>
+      <path fill="none" stroke="#3a1a0a" stroke-width="1.5" d="M602,414 C615,398 665,398 678,414"/>
+    </g>
+
+    <!-- Left eyebrow -->
+    <path fill="#3a1a0a" d="M395,380 C415,362 455,358 485,370 C480,365 425,355 395,380 Z"/>
+    <!-- Right eyebrow -->
+    <path fill="#3a1a0a" d="M685,380 C665,362 625,358 595,370 C600,365 655,355 685,380 Z"/>
+
+    <!-- Nose -->
+    <path fill="url(#nose-shade)" opacity="0.4" d="M530,430 L525,520 C525,540 535,550 540,550 C545,550 555,540 555,520 L550,430 Z"/>
+    <!-- Nose tip -->
+    <ellipse fill="#d4a882" cx="540" cy="545" rx="22" ry="12"/>
+    <!-- Nostrils -->
+    <ellipse fill="#8a5a3a" opacity="0.3" cx="525" cy="548" rx="8" ry="5"/>
+    <ellipse fill="#8a5a3a" opacity="0.3" cx="555" cy="548" rx="8" ry="5"/>
+    <!-- Nose bridge shadow -->
+    <path fill="#b87a55" opacity="0.1" d="M535,430 L530,520 L540,525 L550,520 L545,430 Z"/>
+
+    <!-- Mouth (slight smile) -->
+    <!-- Upper lip -->
+    <path fill="#c0645a" d="M475,620 C490,608 520,600 540,605 C560,600 590,608 605,620 C590,615 560,610 540,612 C520,610 490,615 475,620 Z"/>
+    <!-- Lower lip -->
+    <path fill="#d47068" d="M475,620 C490,645 520,655 540,655 C560,655 590,645 605,620 C590,630 560,640 540,640 C520,640 490,630 475,620 Z"/>
+    <!-- Lip highlight -->
+    <ellipse fill="#e8887e" opacity="0.3" cx="540" cy="630" rx="30" ry="5"/>
+    <!-- Lip line -->
+    <path fill="none" stroke="#a04838" stroke-width="1" d="M475,620 C505,618 530,615 540,617 C550,615 575,618 605,620"/>
+
+    <!-- Cheek blush -->
+    <ellipse fill="#d4806a" opacity="0.12" cx="400" cy="530" rx="45" ry="30"/>
+    <ellipse fill="#d4806a" opacity="0.12" cx="680" cy="530" rx="45" ry="30"/>
+
+    <!-- Ears -->
+    <ellipse fill="#d4a07a" cx="332" cy="440" rx="18" ry="40"/>
+    <ellipse fill="#c49470" cx="330" cy="440" rx="10" ry="28"/>
+    <ellipse fill="#d4a07a" cx="748" cy="440" rx="18" ry="40"/>
+    <ellipse fill="#c49470" cx="750" cy="440" rx="10" ry="28"/>
+  </g>
+
+  <!-- ============ DETECTION OVERLAYS ============ -->
+
+  <!-- Bounding box (cyan, animated-look dashes) -->
+  <rect filter="url(#glow-cyan)" fill="none" stroke="#00bcd4" stroke-width="3" stroke-dasharray="12,6" x="300" y="200" width="480" height="580" rx="10"/>
+
+  <!-- Face contour overlay (green) -->
+  <g filter="url(#glow-contour)">
+    <!-- Face outline -->
+    <path fill="none" stroke="#66bb6a" stroke-width="2.5" opacity="0.85" d="
+      M540,225
+      C650,225 735,305 735,400
+      C735,515 715,615 678,678
+      C648,718 598,748 540,748
+      C482,748 432,718 402,678
+      C365,615 345,515 345,400
+      C345,305 430,225 540,225
+    "/>
+    <!-- Contour dots along face outline -->
+    <circle fill="#66bb6a" cx="540" cy="225" r="3"/>
+    <circle fill="#66bb6a" cx="590" cy="230" r="3"/>
+    <circle fill="#66bb6a" cx="635" cy="245" r="3"/>
+    <circle fill="#66bb6a" cx="672" cy="270" r="3"/>
+    <circle fill="#66bb6a" cx="705" cy="310" r="3"/>
+    <circle fill="#66bb6a" cx="725" cy="355" r="3"/>
+    <circle fill="#66bb6a" cx="735" cy="400" r="3"/>
+    <circle fill="#66bb6a" cx="730" cy="460" r="3"/>
+    <circle fill="#66bb6a" cx="720" cy="520" r="3"/>
+    <circle fill="#66bb6a" cx="705" cy="575" r="3"/>
+    <circle fill="#66bb6a" cx="678" cy="630" r="3"/>
+    <circle fill="#66bb6a" cx="650" cy="678" r="3"/>
+    <circle fill="#66bb6a" cx="610" cy="720" r="3"/>
+    <circle fill="#66bb6a" cx="540" cy="748" r="3"/>
+    <circle fill="#66bb6a" cx="470" cy="720" r="3"/>
+    <circle fill="#66bb6a" cx="430" cy="678" r="3"/>
+    <circle fill="#66bb6a" cx="402" cy="630" r="3"/>
+    <circle fill="#66bb6a" cx="375" cy="575" r="3"/>
+    <circle fill="#66bb6a" cx="360" cy="520" r="3"/>
+    <circle fill="#66bb6a" cx="350" cy="460" r="3"/>
+    <circle fill="#66bb6a" cx="345" cy="400" r="3"/>
+    <circle fill="#66bb6a" cx="355" cy="355" r="3"/>
+    <circle fill="#66bb6a" cx="375" cy="310" r="3"/>
+    <circle fill="#66bb6a" cx="408" cy="270" r="3"/>
+    <circle fill="#66bb6a" cx="445" cy="245" r="3"/>
+    <circle fill="#66bb6a" cx="490" cy="230" r="3"/>
+
+    <!-- Left eyebrow contour -->
+    <path fill="none" stroke="#66bb6a" stroke-width="2" d="M395,378 C415,360 455,356 485,368"/>
+    <!-- Right eyebrow contour -->
+    <path fill="none" stroke="#66bb6a" stroke-width="2" d="M595,368 C625,356 665,360 685,378"/>
+
+    <!-- Left eye contour -->
+    <ellipse fill="none" stroke="#66bb6a" stroke-width="2" cx="440" cy="420" rx="40" ry="20"/>
+    <!-- Right eye contour -->
+    <ellipse fill="none" stroke="#66bb6a" stroke-width="2" cx="640" cy="420" rx="40" ry="20"/>
+
+    <!-- Nose bridge -->
+    <path fill="none" stroke="#66bb6a" stroke-width="2" d="M540,400 L537,480 L535,530"/>
+    <!-- Nose bottom -->
+    <path fill="none" stroke="#66bb6a" stroke-width="2" d="M510,548 C525,560 555,560 570,548"/>
+
+    <!-- Upper lip -->
+    <path fill="none" stroke="#66bb6a" stroke-width="2" d="M472,618 C490,605 520,598 540,603 C560,598 590,605 608,618"/>
+    <!-- Lower lip -->
+    <path fill="none" stroke="#66bb6a" stroke-width="2" d="M472,618 C490,648 520,658 540,658 C560,658 590,648 608,618"/>
+  </g>
+
+  <!-- 10 Face landmarks (orange, larger) -->
+  <g filter="url(#glow-orange)">
+    <circle fill="#ff9800" cx="440" cy="420" r="8"/>  <!-- leftEye -->
+    <circle fill="#ff9800" cx="640" cy="420" r="8"/>  <!-- rightEye -->
+    <circle fill="#ff9800" cx="540" cy="540" r="8"/>  <!-- noseBase -->
+    <circle fill="#ff9800" cx="472" cy="618" r="8"/>  <!-- mouthLeft -->
+    <circle fill="#ff9800" cx="608" cy="618" r="8"/>  <!-- mouthRight -->
+    <circle fill="#ff9800" cx="540" cy="655" r="8"/>  <!-- mouthBottom -->
+    <circle fill="#ff9800" cx="332" cy="440" r="8"/>  <!-- leftEar -->
+    <circle fill="#ff9800" cx="748" cy="440" r="8"/>  <!-- rightEar -->
+    <circle fill="#ff9800" cx="400" cy="540" r="8"/>  <!-- leftCheek -->
+    <circle fill="#ff9800" cx="680" cy="540" r="8"/>  <!-- rightCheek -->
+  </g>
+
+  <!-- Landmark labels -->
+  <g fill="#ff9800" font-family="'SF Mono', monospace" font-size="11" opacity="0.7">
+    <text x="440" y="405" text-anchor="middle">L-Eye</text>
+    <text x="640" y="405" text-anchor="middle">R-Eye</text>
+    <text x="540" y="530" text-anchor="middle">Nose</text>
+    <text x="445" y="612" text-anchor="end">Mouth-L</text>
+    <text x="635" y="612">Mouth-R</text>
+    <text x="540" y="675" text-anchor="middle">Mouth-B</text>
+    <text x="305" y="435" text-anchor="end">L-Ear</text>
+    <text x="775" y="435">R-Ear</text>
+    <text x="375" y="535" text-anchor="end">L-Cheek</text>
+    <text x="705" y="535">R-Cheek</text>
+  </g>
+
+  <!-- Emotion label -->
+  <rect fill="#000" opacity="0.8" x="340" y="850" width="400" height="60" rx="16"/>
+  <rect fill="none" stroke="#1565c0" stroke-width="2" x="340" y="850" width="400" height="60" rx="16"/>
+  <text fill="#42a5f5" font-family="'SF Pro Display', sans-serif" font-size="32" font-weight="bold" x="540" y="890" text-anchor="middle">HAPPY  98%</text>
+
+  <!-- Stats panel -->
+  <rect fill="#000" opacity="0.7" x="60" y="120" width="200" height="180" rx="10"/>
+  <g fill="#9e9e9e" font-family="'SF Mono', monospace" font-size="13">
+    <text x="75" y="148">Inference: <tspan fill="#fff">18ms</tspan></text>
+    <text x="75" y="168">Emotion: <tspan fill="#42a5f5">happy</tspan></text>
+    <text x="75" y="188">Confidence: <tspan fill="#fff">98%</tspan></text>
+    <text x="75" y="208">Smile: <tspan fill="#fff">95%</tspan></text>
+    <text x="75" y="228">Eyes: <tspan fill="#fff">Open</tspan></text>
+    <text x="75" y="248">Contours: <tspan fill="#66bb6a">15 types</tspan></text>
+    <text x="75" y="268">Landmarks: <tspan fill="#ff9800">10 pts</tspan></text>
+    <text x="75" y="288">Attention: <tspan fill="#fff">92% high</tspan></text>
+  </g>
+
+  <!-- Feature badges -->
+  <rect fill="#1b5e20" opacity="0.9" x="810" y="120" width="210" height="28" rx="6"/>
+  <text fill="#66bb6a" font-family="'SF Pro', sans-serif" font-size="13" font-weight="600" x="915" y="139" text-anchor="middle">15 Contour Types</text>
+  <rect fill="#e65100" opacity="0.9" x="810" y="155" width="210" height="28" rx="6"/>
+  <text fill="#ff9800" font-family="'SF Pro', sans-serif" font-size="13" font-weight="600" x="915" y="174" text-anchor="middle">10 Landmark Points</text>
+  <rect fill="#0d47a1" opacity="0.9" x="810" y="190" width="210" height="28" rx="6"/>
+  <text fill="#42a5f5" font-family="'SF Pro', sans-serif" font-size="13" font-weight="600" x="915" y="209" text-anchor="middle">7 Emotion Classes</text>
+  <rect fill="#4a148c" opacity="0.9" x="810" y="225" width="210" height="28" rx="6"/>
+  <text fill="#ab47bc" font-family="'SF Pro', sans-serif" font-size="13" font-weight="600" x="915" y="244" text-anchor="middle">Blink + Head Gesture</text>
+
+  <!-- Branding -->
+  <text fill="#ffffff" font-family="'SF Pro Display', sans-serif" font-size="28" font-weight="bold" x="540" y="1000" text-anchor="middle">vision_ai</text>
+  <text fill="#546e7a" font-family="'SF Pro', sans-serif" font-size="14" x="540" y="1020" text-anchor="middle">Real-time Face Detection + Emotion Classification for Flutter</text>
+</svg>
