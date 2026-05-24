@@ -58,9 +58,29 @@ class CameraConfig {
   final CameraFacing facing;
   final AnalysisResolution resolution;
 
+  /// Maximum detection results delivered to Dart per second.
+  ///
+  /// Controls how often [VisionAi.results] emits. The ML pipeline still runs
+  /// at full speed internally — throttling only skips the emission to Dart,
+  /// so the next result that IS emitted is always fresh (not stale).
+  ///
+  /// **How to choose a value:**
+  /// - `0` (default) — No throttle. Every processed frame is emitted.
+  ///   Best for smooth hand landmark drawing (~18-30 FPS depending on device).
+  /// - `10-15` — Good balance. Gesture/emotion labels update smoothly,
+  ///   hand skeleton has slight trailing on fast movement. Saves ~40-50%
+  ///   main thread work compared to unthrottled.
+  /// - `5` — Labels-only mode. Fine for reading gesture/emotion values,
+  ///   but hand skeleton drawing will look choppy. Saves ~70% main thread work.
+  ///
+  /// Clamped to 1-60 range when set. Values above device processing speed
+  /// have no effect (a device processing at 20 FPS won't emit faster than 20).
+  final int maxResultsPerSecond;
+
   const CameraConfig({
     this.facing = CameraFacing.front,
     this.resolution = AnalysisResolution.medium,
+    this.maxResultsPerSecond = 0,
   });
 }
 

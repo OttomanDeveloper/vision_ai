@@ -24,9 +24,15 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     HandConfig? handConfig,
     FaceConfig? faceConfig,
   }) async {
+    // Clamp to 1-60 if set, 0 means no throttle
+    final maxResults = cameraConfig.maxResultsPerSecond <= 0
+        ? 0
+        : cameraConfig.maxResultsPerSecond.clamp(1, 60);
+
     final result = await _commandChannel.invokeMethod<int>('startCamera', {
       'cameraFacing': cameraConfig.facing.index,
       'resolution': cameraConfig.resolution.index,
+      'maxResultsPerSecond': maxResults,
       'enableHand': handConfig != null,
       'enableFace': faceConfig != null,
       if (handConfig != null) ...{

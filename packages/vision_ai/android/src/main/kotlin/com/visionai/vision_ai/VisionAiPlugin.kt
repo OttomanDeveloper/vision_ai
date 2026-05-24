@@ -124,7 +124,8 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
 
-        resultAggregator = ResultAggregator(mainHandler) { resultStreamHandler.eventSink }
+        val maxResults = call.argument<Int>("maxResultsPerSecond") ?: 0
+        resultAggregator = ResultAggregator(mainHandler, { resultStreamHandler.eventSink }, maxResults)
         frameProcessor = FrameProcessor(
             resultAggregator = resultAggregator!!,
             handProcessor = handProcessor,

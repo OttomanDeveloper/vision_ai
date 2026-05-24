@@ -47,6 +47,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _enableFaceTracking = true;
   CameraFacing _cameraFacing = CameraFacing.front;
   AnalysisResolution _resolution = AnalysisResolution.medium;
+  int _maxResultsPerSecond = 0; // 0 = no throttle
 
   // --- Overlay toggles ---
   bool _showHandLandmarks = true;
@@ -85,6 +86,7 @@ class _CameraPageState extends State<CameraPage> {
       camera: CameraConfig(
         facing: _cameraFacing,
         resolution: _resolution,
+        maxResultsPerSecond: _maxResultsPerSecond,
       ),
     );
   }
@@ -183,6 +185,7 @@ class _CameraPageState extends State<CameraPage> {
         enableFaceTracking: _enableFaceTracking,
         cameraFacing: _cameraFacing,
         resolution: _resolution,
+        maxResultsPerSecond: _maxResultsPerSecond,
         showHandLandmarks: _showHandLandmarks,
         showFaceBoundingBox: _showFaceBoundingBox,
         showGestureLabel: _showGestureLabel,
@@ -199,6 +202,7 @@ class _CameraPageState extends State<CameraPage> {
             _enableFaceTracking = settings.enableFaceTracking;
             _cameraFacing = settings.cameraFacing;
             _resolution = settings.resolution;
+            _maxResultsPerSecond = settings.maxResultsPerSecond;
             _showHandLandmarks = settings.showHandLandmarks;
             _showFaceBoundingBox = settings.showFaceBoundingBox;
             _showGestureLabel = settings.showGestureLabel;
@@ -408,6 +412,7 @@ class _Settings {
   final bool enableFaceTracking;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
+  final int maxResultsPerSecond;
   final bool showHandLandmarks;
   final bool showFaceBoundingBox;
   final bool showGestureLabel;
@@ -424,6 +429,7 @@ class _Settings {
     required this.enableFaceTracking,
     required this.cameraFacing,
     required this.resolution,
+    required this.maxResultsPerSecond,
     required this.showHandLandmarks,
     required this.showFaceBoundingBox,
     required this.showGestureLabel,
@@ -445,6 +451,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool enableFaceTracking;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
+  final int maxResultsPerSecond;
   final bool showHandLandmarks;
   final bool showFaceBoundingBox;
   final bool showGestureLabel;
@@ -462,6 +469,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.enableFaceTracking,
     required this.cameraFacing,
     required this.resolution,
+    required this.maxResultsPerSecond,
     required this.showHandLandmarks,
     required this.showFaceBoundingBox,
     required this.showGestureLabel,
@@ -484,6 +492,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _faceTracking = widget.enableFaceTracking;
   late CameraFacing _facing = widget.cameraFacing;
   late AnalysisResolution _res = widget.resolution;
+  late int _maxResults = widget.maxResultsPerSecond;
   late bool _showLandmarks = widget.showHandLandmarks;
   late bool _showFaceBox = widget.showFaceBoundingBox;
   late bool _showGesture = widget.showGestureLabel;
@@ -501,6 +510,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       enableFaceTracking: _faceTracking,
       cameraFacing: _facing,
       resolution: _res,
+      maxResultsPerSecond: _maxResults,
       showHandLandmarks: _showLandmarks,
       showFaceBoundingBox: _showFaceBox,
       showGestureLabel: _showGesture,
@@ -575,6 +585,43 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               setState(() => _res = v);
               _emit();
             },
+          ),
+          const SizedBox(height: 12),
+          // 0 = no throttle (every frame), 5-15 = balanced, 60 = max
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Max Results/sec', style: TextStyle(fontSize: 14)),
+                  Text(
+                    _maxResults == 0 ? 'No limit' : '$_maxResults/sec',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                  ),
+                ],
+              ),
+              Slider(
+                value: _maxResults.toDouble(),
+                min: 0,
+                max: 30,
+                divisions: 6, // 0, 5, 10, 15, 20, 25, 30
+                onChanged: (v) {
+                  setState(() => _maxResults = v.round());
+                  _emit();
+                },
+              ),
+              Text(
+                _maxResults == 0
+                    ? 'No throttle — smoothest landmark tracking'
+                    : _maxResults <= 5
+                        ? 'Labels only — choppy landmarks, lightest load'
+                        : _maxResults <= 15
+                            ? 'Balanced — smooth labels, slight landmark lag'
+                            : 'Near-full rate — minimal throttling',
+                style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              ),
+            ],
           ),
           const Divider(height: 32),
           const Text('HAND CONFIG', style: _sectionStyle),
