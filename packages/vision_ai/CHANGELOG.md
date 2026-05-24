@@ -11,6 +11,7 @@
 
 ### Improvements
 - Added comprehensive inline comments to all Kotlin, Swift, and Dart source files
+- Replaced `setState` with `ValueNotifier` + `ValueListenableBuilder` in example app
 - Settings panel now uses grouped cards (Hand Detection, Face Detection, Camera, Overlays)
 - Disabling hand/face detection now hides related settings and resets sub-features
 - Updated README with detailed API documentation, use cases, and release build instructions
