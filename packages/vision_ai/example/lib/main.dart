@@ -45,6 +45,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _detectContours = false;
   int _maxHands = 2;
   double _minDetectionConfidence = 0.5;
+  bool _enableGestureFilter = false;
   double _minFaceSize = 0.1;
   bool _enableFaceTracking = true;
   bool _faceAccurateMode = false;
@@ -98,6 +99,12 @@ class _CameraPageState extends State<CameraPage> {
                   },
                 ),
               ],
+              deniedGestures: _enableGestureFilter
+                  ? {Gesture.fist, Gesture.openHand}
+                  : null,
+              gestureThresholds: _enableGestureFilter
+                  ? {Gesture.thumbsUp: 0.8, Gesture.peace: 0.7}
+                  : null,
             )
           : null,
       face: _enableFace
@@ -278,6 +285,7 @@ class _CameraPageState extends State<CameraPage> {
         enableTwoHandInteraction: _enableTwoHandInteraction,
         maxHands: _maxHands,
         minDetectionConfidence: _minDetectionConfidence,
+        enableGestureFilter: _enableGestureFilter,
         minFaceSize: _minFaceSize,
         enableFaceTracking: _enableFaceTracking,
         faceAccurateMode: _faceAccurateMode,
@@ -307,6 +315,7 @@ class _CameraPageState extends State<CameraPage> {
             _enableTwoHandInteraction = settings.enableTwoHandInteraction;
             _maxHands = settings.maxHands;
             _minDetectionConfidence = settings.minDetectionConfidence;
+            _enableGestureFilter = settings.enableGestureFilter;
             _minFaceSize = settings.minFaceSize;
             _enableFaceTracking = settings.enableFaceTracking;
             _faceAccurateMode = settings.faceAccurateMode;
@@ -550,6 +559,7 @@ class _Settings {
   final bool detectEmotion;
   final int maxHands;
   final double minDetectionConfidence;
+  final bool enableGestureFilter;
   final double minFaceSize;
   final bool enableFaceTracking;
   final bool faceAccurateMode;
@@ -587,6 +597,7 @@ class _Settings {
     required this.enableTwoHandInteraction,
     required this.maxHands,
     required this.minDetectionConfidence,
+    required this.enableGestureFilter,
     required this.minFaceSize,
     required this.enableFaceTracking,
     required this.faceAccurateMode,
@@ -621,6 +632,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool enableTwoHandInteraction;
   final int maxHands;
   final double minDetectionConfidence;
+  final bool enableGestureFilter;
   final double minFaceSize;
   final bool enableFaceTracking;
   final bool faceAccurateMode;
@@ -651,6 +663,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.enableTwoHandInteraction,
     required this.maxHands,
     required this.minDetectionConfidence,
+    required this.enableGestureFilter,
     required this.minFaceSize,
     required this.enableFaceTracking,
     required this.faceAccurateMode,
@@ -686,6 +699,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _twoHandInteraction = widget.enableTwoHandInteraction;
   late int _maxHands = widget.maxHands;
   late double _minDetConf = widget.minDetectionConfidence;
+  late bool _gestureFilter = widget.enableGestureFilter;
   late double _minFaceSize = widget.minFaceSize;
   late bool _faceTracking = widget.enableFaceTracking;
   late bool _accurateMode = widget.faceAccurateMode;
@@ -716,6 +730,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       enableTwoHandInteraction: _twoHandInteraction,
       maxHands: _maxHands,
       minDetectionConfidence: _minDetConf,
+      enableGestureFilter: _gestureFilter,
       minFaceSize: _minFaceSize,
       enableFaceTracking: _faceTracking,
       faceAccurateMode: _accurateMode,
@@ -892,6 +907,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           const SizedBox(height: 12),
           _slider('Detection Confidence', _minDetConf, 0.1, 1.0, (v) {
             setState(() => _minDetConf = v);
+            _emit();
+          }),
+          _toggle('Gesture Filter (deny fist/palm, high thresholds)', _gestureFilter, (v) {
+            setState(() => _gestureFilter = v);
             _emit();
           }),
           const Divider(height: 32),

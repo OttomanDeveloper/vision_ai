@@ -62,6 +62,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
               },
             )
             .toList(),
+        ..._serializeGestureFilters(handConfig),
       },
       if (faceConfig != null) ...{
         'detectEmotion': faceConfig.detectEmotion,
@@ -101,6 +102,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
               },
             )
             .toList(),
+        ..._serializeGestureFilters(config),
       });
 
   @override
@@ -301,5 +303,43 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         FingerState.extended => 1,
         FingerState.closed => 0,
         null => -1,
+      };
+
+  static Map<String, Object> _serializeGestureFilters(HandConfig config) {
+    final map = <String, Object>{};
+    if (config.allowedGestures != null && config.allowedGestures!.isNotEmpty) {
+      map['allowedGestures'] =
+          config.allowedGestures!.map(_gestureToNative).toList();
+    }
+    if (config.deniedGestures != null && config.deniedGestures!.isNotEmpty) {
+      map['deniedGestures'] =
+          config.deniedGestures!.map(_gestureToNative).toList();
+    }
+    if (config.gestureThresholds != null &&
+        config.gestureThresholds!.isNotEmpty) {
+      map['gestureThresholds'] = {
+        for (final e in config.gestureThresholds!.entries)
+          _gestureToNative(e.key): e.value,
+      };
+    }
+    return map;
+  }
+
+  static String _gestureToNative(Gesture g) => switch (g) {
+        Gesture.fist => 'Closed_Fist',
+        Gesture.openHand => 'Open_Palm',
+        Gesture.peace => 'Victory',
+        Gesture.thumbsUp => 'Thumb_Up',
+        Gesture.thumbsDown => 'Thumb_Down',
+        Gesture.pointingUp => 'Pointing_Up',
+        Gesture.iLoveYou => 'ILoveYou',
+        Gesture.ok => 'ok',
+        Gesture.one => 'one',
+        Gesture.two => 'two',
+        Gesture.three => 'three',
+        Gesture.four => 'four',
+        Gesture.five => 'five',
+        Gesture.custom => 'custom',
+        Gesture.none => 'None',
       };
 }

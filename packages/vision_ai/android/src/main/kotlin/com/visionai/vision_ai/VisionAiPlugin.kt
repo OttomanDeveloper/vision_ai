@@ -94,6 +94,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
                 val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
                 val customGestureConfigs = parseCustomGestures(call)
+                val gestureFilters = parseGestureFilters(call)
 
                 handProcessor = HandGestureProcessor(act)
                 handProcessor!!.initialize(
@@ -102,6 +103,9 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     minPresenceConfidence = minPresence,
                     minTrackingConfidence = minTracking,
                     customGestures = customGestureConfigs,
+                    allowedGestures = gestureFilters.allowed,
+                    deniedGestures = gestureFilters.denied,
+                    gestureThresholds = gestureFilters.thresholds,
                 )
             }
 
@@ -216,6 +220,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
         val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
         val customGestureConfigs = parseCustomGestures(call)
+        val gestureFilters = parseGestureFilters(call)
 
         handProcessor!!.initialize(
             maxHands = maxHands,
@@ -223,6 +228,9 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             minPresenceConfidence = minPresence,
             minTrackingConfidence = minTracking,
             customGestures = customGestureConfigs,
+            allowedGestures = gestureFilters.allowed,
+            deniedGestures = gestureFilters.denied,
+            gestureThresholds = gestureFilters.thresholds,
         )
         result.success(null)
     }
@@ -261,6 +269,19 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             if (states.size != 5) return@mapNotNull null
             CustomGestureConfig(name, states.toIntArray())
         }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun parseGestureFilters(call: MethodCall): GestureFilterConfig {
+        val allowed = call.argument<List<String>>("allowedGestures")?.toSet()
+        val denied = call.argument<List<String>>("deniedGestures")?.toSet()
+        val rawThresholds = call.argument<Map<String, Any>>("gestureThresholds")
+        val thresholds = rawThresholds?.mapValues { (it.value as Number).toFloat() }
+        return GestureFilterConfig(
+            allowed = allowed?.ifEmpty { null },
+            denied = denied?.ifEmpty { null },
+            thresholds = thresholds?.ifEmpty { null },
+        )
     }
 
     private fun handleDispose(result: Result) {
@@ -332,3 +353,9 @@ class PluginLifecycleOwner : LifecycleOwner {
         lifecycleRegistry.handleLifecycleEvent(event)
     }
 }
+
+data class GestureFilterConfig(
+    val allowed: Set<String>?,
+    val denied: Set<String>?,
+    val thresholds: Map<String, Float>?,
+)

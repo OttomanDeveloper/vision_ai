@@ -1,4 +1,5 @@
 import 'finger_state.dart';
+import 'gesture.dart';
 
 enum CameraFacing { front, back }
 
@@ -22,12 +23,30 @@ class HandConfig {
   /// Custom gestures to recognize beyond the 13 built-in ones.
   final List<CustomGesture> customGestures;
 
+  /// If set, only these built-in gestures are reported. Others are
+  /// filtered to [Gesture.none], which still allows custom gesture fallback.
+  /// Ignored if empty. Cannot be used together with [deniedGestures].
+  final Set<Gesture>? allowedGestures;
+
+  /// If set, these built-in gestures are filtered out (reported as
+  /// [Gesture.none]). Filtered gestures still trigger custom gesture fallback.
+  /// Ignored if empty. Cannot be used together with [allowedGestures].
+  final Set<Gesture>? deniedGestures;
+
+  /// Per-gesture minimum confidence thresholds. If a gesture's score is below
+  /// its entry here, it is filtered to [Gesture.none]. Overrides the global
+  /// [minDetectionConfidence] for the specific gesture.
+  final Map<Gesture, double>? gestureThresholds;
+
   const HandConfig({
     this.maxHands = 2,
     this.minDetectionConfidence = 0.5,
     this.minPresenceConfidence = 0.5,
     this.minTrackingConfidence = 0.5,
     this.customGestures = const [],
+    this.allowedGestures,
+    this.deniedGestures,
+    this.gestureThresholds,
   });
 }
 

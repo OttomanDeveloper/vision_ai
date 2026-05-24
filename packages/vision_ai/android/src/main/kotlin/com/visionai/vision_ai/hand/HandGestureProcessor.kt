@@ -19,6 +19,9 @@ class HandGestureProcessor(private val context: Context) {
 
     private var gestureRecognizer: GestureRecognizer? = null
     private var customClassifier: CustomGestureClassifier? = null
+    private var allowedGestures: Set<String>? = null
+    private var deniedGestures: Set<String>? = null
+    private var gestureThresholds: Map<String, Float>? = null
 
     @Volatile
     private var latestResult: HandProcessorResult? = null
@@ -29,8 +32,15 @@ class HandGestureProcessor(private val context: Context) {
         minPresenceConfidence: Float = 0.5f,
         minTrackingConfidence: Float = 0.5f,
         customGestures: List<CustomGestureConfig> = emptyList(),
+        allowedGestures: Set<String>? = null,
+        deniedGestures: Set<String>? = null,
+        gestureThresholds: Map<String, Float>? = null,
     ) {
         close()
+
+        this.allowedGestures = allowedGestures
+        this.deniedGestures = deniedGestures
+        this.gestureThresholds = gestureThresholds
 
         val baseOptions = try {
             BaseOptions.builder()
@@ -96,6 +106,26 @@ class HandGestureProcessor(private val context: Context) {
                 0.0
             }
             var customGestureName: String? = null
+
+            // Per-gesture filtering: allow/deny lists and per-gesture thresholds.
+            // Filtered gestures become "None" so custom gesture fallback still runs.
+            if (gestureName != "None") {
+                val allowed = allowedGestures
+                val denied = deniedGestures
+                val thresholds = gestureThresholds
+                if (allowed != null && gestureName !in allowed) {
+                    gestureName = "None"
+                    gestureScore = 0.0
+                } else if (denied != null && gestureName in denied) {
+                    gestureName = "None"
+                    gestureScore = 0.0
+                } else if (thresholds != null && thresholds.containsKey(gestureName)) {
+                    if (gestureScore < thresholds[gestureName]!!) {
+                        gestureName = "None"
+                        gestureScore = 0.0
+                    }
+                }
+            }
 
             val isLeft = handedness.isNotEmpty() &&
                     handedness[0].categoryName().equals("Left", ignoreCase = true)
