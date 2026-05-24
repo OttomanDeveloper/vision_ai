@@ -1,0 +1,16 @@
+vision_ai - On-device hand gesture recognition and facial emotion detection for Flutter
+Copyright 2026 OttomanDeveloper
+https://github.com/OttomanDeveloper/vision_ai
+
+This product includes software developed by OttomanDeveloper.
+
+If you use or modify this software, you must:
+1. Include this NOTICE file in your distribution
+2. State any changes you made to the original files
+3. Retain the original copyright and license notices
+
+Third-party components:
+- MediaPipe Gesture Recognizer (Apache 2.0) - Google
+- Google ML Kit Face Detection (Apache 2.0) - Google
+- TensorFlow Lite (Apache 2.0) - Google
+- FER2013 emotion model (MIT) - Shubham-Zone
