@@ -17,6 +17,21 @@ dependencies:
   vision_ai_flutter: ^0.1.0
 ```
 
+**Android release builds:** MediaPipe crashes with R8 code shrinking. Add to `android/app/build.gradle.kts`:
+
+```kotlin
+android {
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
+}
+```
+
+See the [vision_ai README](https://pub.dev/packages/vision_ai) for full setup (camera permissions, iOS config).
+
 ## Quick Start
 
 ```dart

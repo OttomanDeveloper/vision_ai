@@ -11,6 +11,7 @@ pubspec_overrides.yaml
 # Android
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
+**/.kotlin/
 **/android/captures/
 **/android/gradlew
 **/android/gradlew.bat

@@ -111,6 +111,19 @@ dependencies:
 <uses-permission android:name="android.permission.CAMERA" />
 ```
 
+**Release builds:** MediaPipe crashes with R8 code shrinking enabled. Add this to `android/app/build.gradle.kts`:
+
+```kotlin
+android {
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
+}
+```
+
 ### iOS Setup
 
 ```xml

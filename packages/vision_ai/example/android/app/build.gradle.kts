@@ -27,9 +27,11 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // MediaPipe Graph.<clinit> uses stack-walking to find its native loader.
+            // R8 obfuscation breaks this — disable minification for release.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

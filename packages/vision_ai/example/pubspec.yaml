@@ -2,7 +2,7 @@ name: vision_ai_example
 description: "Demonstrates how to use the vision_ai plugin."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 environment:
   sdk: ^3.12.0
@@ -17,10 +17,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  vision_ai:
-    path: ../
-  vision_ai_flutter:
-    path: ../../vision_ai_flutter
+  vision_ai: 0.1.0
+  vision_ai_flutter: 0.1.0
   permission_handler: ^11.4.0
   cupertino_icons: ^1.0.8
 
@@ -42,7 +40,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

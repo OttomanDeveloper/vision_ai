@@ -45,6 +45,23 @@ Add camera permission to `android/app/src/main/AndroidManifest.xml`:
 <uses-permission android:name="android.permission.CAMERA" />
 ```
 
+#### Release builds (important)
+
+MediaPipe uses stack-walking internally to load its native libraries. R8 code shrinking obfuscates the caller class names, which crashes the app at runtime with `no caller found on the stack`. To fix this, disable minification in your app's `android/app/build.gradle.kts`:
+
+```kotlin
+android {
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+        }
+    }
+}
+```
+
+Without this, the app works in debug mode but crashes in release mode when initializing the hand gesture recognizer.
+
 ### iOS
 
 Add camera usage description to `ios/Runner/Info.plist`:
