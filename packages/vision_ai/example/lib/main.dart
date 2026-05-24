@@ -63,16 +63,19 @@ class _CameraPageState extends State<CameraPage> {
   bool _enableAttentionScore = false;
   bool _showWorldCoords = false;
   bool _enableHandMotion = false;
+  bool _enableTwoHandInteraction = false;
   BlinkDetector? _blinkDetector;
   HeadGestureDetector? _headGestureDetector;
   FaceDistanceEstimator? _distanceEstimator;
   AttentionScorer? _attentionScorer;
   HandMotionTracker? _handMotionTracker;
+  TwoHandInteractionDetector? _twoHandDetector;
   BlinkEvent? _lastBlink;
   HeadGestureEvent? _lastHeadGesture;
   FaceDistanceEstimate? _lastDistance;
   AttentionScore? _lastAttention;
   HandMotion? _lastHandMotion;
+  TwoHandEvent? _lastTwoHandEvent;
   bool _showGestureLabel = true;
   bool _showEmotionLabel = true;
   bool _showStats = true;
@@ -157,6 +160,9 @@ class _CameraPageState extends State<CameraPage> {
       if (_enableFaceDistance) _distanceEstimator = FaceDistanceEstimator();
       if (_enableAttentionScore) _attentionScorer = AttentionScorer();
       if (_enableHandMotion) _handMotionTracker = HandMotionTracker();
+      if (_enableTwoHandInteraction) {
+        _twoHandDetector = TwoHandInteractionDetector();
+      }
       _resultSub = _vision!.results.listen((r) {
         if (!mounted) return;
         BlinkEvent? blink;
@@ -183,6 +189,10 @@ class _CameraPageState extends State<CameraPage> {
         if (_handMotionTracker != null && hand != null) {
           handMotion = _handMotionTracker!.update(hand, r.timestampMs);
         }
+        TwoHandEvent? twoHandEvent;
+        if (_twoHandDetector != null) {
+          twoHandEvent = _twoHandDetector!.update(r);
+        }
         setState(() {
           _latestResult = r;
           if (blink != null) _lastBlink = blink;
@@ -190,6 +200,7 @@ class _CameraPageState extends State<CameraPage> {
           if (dist != null) _lastDistance = dist;
           if (attention != null) _lastAttention = attention;
           if (handMotion != null) _lastHandMotion = handMotion;
+          if (twoHandEvent != null) _lastTwoHandEvent = twoHandEvent;
         });
       });
       setState(() {
@@ -219,6 +230,8 @@ class _CameraPageState extends State<CameraPage> {
     _attentionScorer = null;
     _handMotionTracker?.reset();
     _handMotionTracker = null;
+    _twoHandDetector?.reset();
+    _twoHandDetector = null;
     setState(() {
       _textureId = null;
       _latestResult = null;
@@ -227,6 +240,7 @@ class _CameraPageState extends State<CameraPage> {
       _lastDistance = null;
       _lastAttention = null;
       _lastHandMotion = null;
+      _lastTwoHandEvent = null;
     });
   }
 
@@ -261,6 +275,7 @@ class _CameraPageState extends State<CameraPage> {
         enableFaceDistance: _enableFaceDistance,
         enableAttentionScore: _enableAttentionScore,
         enableHandMotion: _enableHandMotion,
+        enableTwoHandInteraction: _enableTwoHandInteraction,
         maxHands: _maxHands,
         minDetectionConfidence: _minDetectionConfidence,
         minFaceSize: _minFaceSize,
@@ -289,6 +304,7 @@ class _CameraPageState extends State<CameraPage> {
             _enableFaceDistance = settings.enableFaceDistance;
             _enableAttentionScore = settings.enableAttentionScore;
             _enableHandMotion = settings.enableHandMotion;
+            _enableTwoHandInteraction = settings.enableTwoHandInteraction;
             _maxHands = settings.maxHands;
             _minDetectionConfidence = settings.minDetectionConfidence;
             _minFaceSize = settings.minFaceSize;
@@ -347,7 +363,7 @@ class _CameraPageState extends State<CameraPage> {
                         Positioned(
                           bottom: 8,
                           right: 8,
-                          child: _StatsOverlay(result: result, lastBlink: _lastBlink, lastHeadGesture: _lastHeadGesture, lastDistance: _lastDistance, lastAttention: _lastAttention, lastHandMotion: _lastHandMotion, showWorldCoords: _showWorldCoords),
+                          child: _StatsOverlay(result: result, lastBlink: _lastBlink, lastHeadGesture: _lastHeadGesture, lastDistance: _lastDistance, lastAttention: _lastAttention, lastHandMotion: _lastHandMotion, lastTwoHandEvent: _lastTwoHandEvent, showWorldCoords: _showWorldCoords),
                         ),
                     ],
                   )
@@ -426,8 +442,9 @@ class _StatsOverlay extends StatelessWidget {
   final FaceDistanceEstimate? lastDistance;
   final AttentionScore? lastAttention;
   final HandMotion? lastHandMotion;
+  final TwoHandEvent? lastTwoHandEvent;
   final bool showWorldCoords;
-  const _StatsOverlay({required this.result, this.lastBlink, this.lastHeadGesture, this.lastDistance, this.lastAttention, this.lastHandMotion, this.showWorldCoords = false});
+  const _StatsOverlay({required this.result, this.lastBlink, this.lastHeadGesture, this.lastDistance, this.lastAttention, this.lastHandMotion, this.lastTwoHandEvent, this.showWorldCoords = false});
 
   @override
   Widget build(BuildContext context) {
@@ -467,6 +484,8 @@ class _StatsOverlay extends StatelessWidget {
             if (lastHandMotion != null)
               _line('Motion', '${lastHandMotion!.state.name} ${lastHandMotion!.direction.name} (${lastHandMotion!.speed.toStringAsFixed(2)}/s)'),
           ],
+          if (lastTwoHandEvent != null)
+            _line('2-Hand', '${lastTwoHandEvent!.gesture.name} (d=${lastTwoHandEvent!.distance.toStringAsFixed(3)})'),
           if (face != null && face.emotion.isRecognized) ...[
             _line('Emotion', face.emotion.name),
             _line('Emotion %', '${(face.emotionConfidence * 100).toStringAsFixed(0)}%'),
@@ -541,6 +560,7 @@ class _Settings {
   final bool enableFaceDistance;
   final bool enableAttentionScore;
   final bool enableHandMotion;
+  final bool enableTwoHandInteraction;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
@@ -564,6 +584,7 @@ class _Settings {
     required this.enableFaceDistance,
     required this.enableAttentionScore,
     required this.enableHandMotion,
+    required this.enableTwoHandInteraction,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -597,6 +618,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool enableFaceDistance;
   final bool enableAttentionScore;
   final bool enableHandMotion;
+  final bool enableTwoHandInteraction;
   final int maxHands;
   final double minDetectionConfidence;
   final double minFaceSize;
@@ -626,6 +648,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.enableFaceDistance,
     required this.enableAttentionScore,
     required this.enableHandMotion,
+    required this.enableTwoHandInteraction,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -660,6 +683,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _faceDistance = widget.enableFaceDistance;
   late bool _attentionScore = widget.enableAttentionScore;
   late bool _handMotion = widget.enableHandMotion;
+  late bool _twoHandInteraction = widget.enableTwoHandInteraction;
   late int _maxHands = widget.maxHands;
   late double _minDetConf = widget.minDetectionConfidence;
   late double _minFaceSize = widget.minFaceSize;
@@ -689,6 +713,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       enableFaceDistance: _faceDistance,
       enableAttentionScore: _attentionScore,
       enableHandMotion: _handMotion,
+      enableTwoHandInteraction: _twoHandInteraction,
       maxHands: _maxHands,
       minDetectionConfidence: _minDetConf,
       minFaceSize: _minFaceSize,
@@ -738,6 +763,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           if (_enableHand)
             _toggle('Hand Motion Tracking', _handMotion, (v) {
               setState(() => _handMotion = v);
+              _emit();
+            }),
+          if (_enableHand)
+            _toggle('Two-Hand Interaction', _twoHandInteraction, (v) {
+              setState(() => _twoHandInteraction = v);
               _emit();
             }),
           _toggle('Face Detection', _enableFace, (v) {
