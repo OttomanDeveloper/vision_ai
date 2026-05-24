@@ -320,6 +320,32 @@ OverlayStyle(
 
 ---
 
+## Example App
+
+The [vision_ai example app](https://github.com/OttomanDeveloper/vision_ai/tree/main/packages/vision_ai/example) is a full working demo of every widget and painter in this package. Run it to see all overlays in action before writing code:
+
+```bash
+git clone https://github.com/OttomanDeveloper/vision_ai.git
+cd vision_ai/packages/vision_ai/example
+flutter run
+```
+
+**What you can toggle in the Overlays card:**
+- Hand skeleton (21-point landmark connections)
+- Hand bounding box (yellow rectangle)
+- Face bounding box (cyan rectangle)
+- Face contours (15-type green mesh)
+- Gesture label (top center)
+- Emotion label (bottom center)
+- World coordinates (pinch/span in cm)
+- Stats overlay (inference time, finger states, attention score, etc.)
+
+Each overlay toggle applies instantly — no restart needed. The settings panel also groups related options into cards so hand overlays disappear when hand detection is off, and face overlays disappear when face detection is off.
+
+The example also shows how to use `VisionAiCameraView` with `ValueNotifier`-driven settings, so you can see how overlay flags flow from your state into the widget without `setState`.
+
+---
+
 ## Tips
 
 - **Performance:** If you only need gesture labels (no skeleton), set `showHandLandmarks: false` — saves ~1-2ms per frame of painter work

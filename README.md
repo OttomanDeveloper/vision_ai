@@ -177,6 +177,20 @@ Camera frames are processed natively (CameraX on Android, AVFoundation on iOS). 
 
 ---
 
+## Try It Before Using It
+
+The package ships with a full demo app with a settings panel for every feature. No code needed — just run and toggle:
+
+```bash
+git clone https://github.com/OttomanDeveloper/vision_ai.git
+cd vision_ai/packages/vision_ai/example
+flutter run
+```
+
+The example includes toggles for hand/face detection, all 6 Dart detectors, overlay visibility, camera settings, gesture filtering, accurate mode, and more. Settings are grouped into cards (Hand Detection, Face Detection, Camera, Overlays) that show/hide related options when you toggle the parent feature on or off.
+
+---
+
 ## Contributing
 
 We welcome contributions, especially for:

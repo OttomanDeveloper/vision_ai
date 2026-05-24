@@ -608,6 +608,29 @@ All ML inference runs on-device:
 
 Camera frames are processed natively (CameraX on Android, AVFoundation on iOS). Only lightweight results cross the platform channel — raw frame data never leaves the native side.
 
+## Example App
+
+The package ships with a full-featured demo app that lets you test every feature before writing any code. It includes a settings panel with per-feature toggles organized into cards, so you can enable/disable individual capabilities and see the results in real-time.
+
+```bash
+cd example
+flutter run
+```
+
+**What you can test:**
+- Toggle hand detection, face detection, or both simultaneously
+- Switch between front/back camera and low/medium/high resolution
+- Enable hand motion tracking, two-hand interaction, gesture filtering
+- Enable blink detection, head nod/shake, face distance, attention scoring
+- Toggle individual overlays: hand skeleton, hand bounding box, face box, face contours, gesture label, emotion label, world coordinates
+- Adjust detection confidence, min face size, max results/sec with sliders
+- Try accurate mode for face detection
+- Define a custom "rock" gesture out of the box
+
+All toggles apply instantly for overlay settings. Detection and camera changes require a restart (tap Stop then Start). When you disable hand or face detection, all related sub-settings and overlay options disappear automatically and reset to defaults.
+
+The example also serves as a reference implementation showing how to use `ValueNotifier` + `ValueListenableBuilder` instead of `setState` for reactive state management with this package.
+
 ## iOS Beta
 
 The iOS implementation is complete and mirrors the Android architecture (AVFoundation + MediaPipe + ML Kit + TFLite), but has not been extensively tested on physical devices. If you have a Mac + iPhone/iPad:
