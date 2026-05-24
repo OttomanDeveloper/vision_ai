@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vision_ai/vision_ai.dart';
 
+import '../painters/face_contour_painter.dart';
 import '../painters/face_overlay_painter.dart';
 import '../painters/hand_landmark_painter.dart';
 import '../styles/overlay_style.dart';
@@ -12,6 +13,7 @@ class VisionAiCameraView extends StatelessWidget {
   final int textureId;
   final bool showHandLandmarks;
   final bool showFaceBoundingBox;
+  final bool showFaceContours;
   final bool showGestureLabel;
   final bool showEmotionLabel;
   final OverlayStyle style;
@@ -24,6 +26,7 @@ class VisionAiCameraView extends StatelessWidget {
     required this.textureId,
     this.showHandLandmarks = true,
     this.showFaceBoundingBox = true,
+    this.showFaceContours = false,
     this.showGestureLabel = true,
     this.showEmotionLabel = true,
     this.style = const OverlayStyle(),
@@ -62,6 +65,13 @@ class VisionAiCameraView extends StatelessWidget {
                       imageSize: result.imageSize,
                       boxColor: style.faceBoundingBoxColor,
                       boxWidth: style.faceBoundingBoxWidth,
+                    ),
+                  ),
+                if (showFaceContours && result.hasFaces)
+                  CustomPaint(
+                    painter: FaceContourPainter(
+                      faces: result.faces,
+                      imageSize: result.imageSize,
                     ),
                   ),
                 if (showGestureLabel && result.primaryHand != null)

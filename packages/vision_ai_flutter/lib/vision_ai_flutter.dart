@@ -1,5 +1,6 @@
 export 'src/painters/hand_landmark_painter.dart';
 export 'src/painters/face_overlay_painter.dart';
+export 'src/painters/face_contour_painter.dart';
 export 'src/widgets/vision_ai_camera_view.dart';
 export 'src/widgets/gesture_label.dart';
 export 'src/widgets/emotion_indicator.dart';

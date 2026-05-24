@@ -57,6 +57,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
       },
       if (faceConfig != null) ...{
         'detectEmotion': faceConfig.detectEmotion,
+        'detectContours': faceConfig.detectContours,
         'minFaceSize': faceConfig.minFaceSize,
         'enableFaceTracking': faceConfig.enableTracking,
         'minEmotionConfidence': faceConfig.minEmotionConfidence,
@@ -96,6 +97,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
   Future<void> updateFaceConfig(FaceConfig config) =>
       _commandChannel.invokeMethod<void>('updateFaceConfig', {
         'detectEmotion': config.detectEmotion,
+        'detectContours': config.detectContours,
         'minFaceSize': config.minFaceSize,
         'enableFaceTracking': config.enableTracking,
         'minEmotionConfidence': config.minEmotionConfidence,
@@ -196,7 +198,32 @@ class VisionAiMethodChannel extends VisionAiPlatform {
       rightEyeOpenProbability:
           (map['rightEyeOpenProbability'] as num?)?.toDouble(),
       trackingId: (map['trackingId'] as int?) ?? -1,
+      contours: _parseContours(map),
     );
+  }
+
+  static List<List<Offset>>? _parseContours(Map map) {
+    final points = map['contourPoints'];
+    final sizes = map['contourSizes'] as List?;
+    if (points == null || sizes == null) return null;
+
+    final Float64List pts = points is Float64List
+        ? points
+        : Float64List.fromList(
+            (points as List).map((e) => (e as num).toDouble()).toList());
+
+    final contours = <List<Offset>>[];
+    var offset = 0;
+    for (final size in sizes) {
+      final count = size as int;
+      final group = <Offset>[];
+      for (var i = 0; i < count; i++) {
+        group.add(Offset(pts[offset], pts[offset + 1]));
+        offset += 2;
+      }
+      if (group.isNotEmpty) contours.add(group);
+    }
+    return contours;
   }
 
   static List<NormalizedLandmark> _toLandmarks(Float64List data) {

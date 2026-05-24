@@ -36,6 +36,12 @@ class FaceConfig {
   /// Whether to run the TFLite emotion classifier (adds ~5-15ms latency).
   final bool detectEmotion;
 
+  /// Whether to detect face contours (133 points: face outline, eyes, lips,
+  /// eyebrows, nose). Enable this to draw a face mesh overlay.
+  /// Note: contour mode and face tracking cannot be used together in ML Kit.
+  /// When enabled, tracking is automatically disabled.
+  final bool detectContours;
+
   /// Minimum face size as proportion of image width [0.0, 1.0].
   final double minFaceSize;
 
@@ -47,6 +53,7 @@ class FaceConfig {
 
   const FaceConfig({
     this.detectEmotion = true,
+    this.detectContours = false,
     this.minFaceSize = 0.1,
     this.enableTracking = true,
     this.minEmotionConfidence = 0.4,

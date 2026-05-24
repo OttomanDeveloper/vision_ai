@@ -41,6 +41,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _enableHand = true;
   bool _enableFace = true;
   bool _detectEmotion = true;
+  bool _detectContours = false;
   int _maxHands = 2;
   double _minDetectionConfidence = 0.5;
   double _minFaceSize = 0.1;
@@ -52,6 +53,7 @@ class _CameraPageState extends State<CameraPage> {
   // --- Overlay toggles ---
   bool _showHandLandmarks = true;
   bool _showFaceBoundingBox = true;
+  bool _showFaceContours = false;
   bool _showGestureLabel = true;
   bool _showEmotionLabel = true;
   bool _showStats = true;
@@ -79,6 +81,7 @@ class _CameraPageState extends State<CameraPage> {
       face: _enableFace
           ? FaceConfig(
               detectEmotion: _detectEmotion,
+              detectContours: _detectContours,
               minFaceSize: _minFaceSize,
               enableTracking: _enableFaceTracking,
             )
@@ -179,6 +182,7 @@ class _CameraPageState extends State<CameraPage> {
         enableHand: _enableHand,
         enableFace: _enableFace,
         detectEmotion: _detectEmotion,
+        detectContours: _detectContours,
         maxHands: _maxHands,
         minDetectionConfidence: _minDetectionConfidence,
         minFaceSize: _minFaceSize,
@@ -188,6 +192,7 @@ class _CameraPageState extends State<CameraPage> {
         maxResultsPerSecond: _maxResultsPerSecond,
         showHandLandmarks: _showHandLandmarks,
         showFaceBoundingBox: _showFaceBoundingBox,
+        showFaceContours: _showFaceContours,
         showGestureLabel: _showGestureLabel,
         showEmotionLabel: _showEmotionLabel,
         showStats: _showStats,
@@ -196,6 +201,7 @@ class _CameraPageState extends State<CameraPage> {
             _enableHand = settings.enableHand;
             _enableFace = settings.enableFace;
             _detectEmotion = settings.detectEmotion;
+            _detectContours = settings.detectContours;
             _maxHands = settings.maxHands;
             _minDetectionConfidence = settings.minDetectionConfidence;
             _minFaceSize = settings.minFaceSize;
@@ -205,6 +211,7 @@ class _CameraPageState extends State<CameraPage> {
             _maxResultsPerSecond = settings.maxResultsPerSecond;
             _showHandLandmarks = settings.showHandLandmarks;
             _showFaceBoundingBox = settings.showFaceBoundingBox;
+            _showFaceContours = settings.showFaceContours;
             _showGestureLabel = settings.showGestureLabel;
             _showEmotionLabel = settings.showEmotionLabel;
             _showStats = settings.showStats;
@@ -241,6 +248,7 @@ class _CameraPageState extends State<CameraPage> {
                         textureId: _textureId!,
                         showHandLandmarks: _showHandLandmarks,
                         showFaceBoundingBox: _showFaceBoundingBox,
+                        showFaceContours: _showFaceContours,
                         showGestureLabel: _showGestureLabel,
                         showEmotionLabel: _showEmotionLabel,
                       ),
@@ -410,11 +418,13 @@ class _Settings {
   final double minDetectionConfidence;
   final double minFaceSize;
   final bool enableFaceTracking;
+  final bool detectContours;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
   final bool showHandLandmarks;
   final bool showFaceBoundingBox;
+  final bool showFaceContours;
   final bool showGestureLabel;
   final bool showEmotionLabel;
   final bool showStats;
@@ -423,6 +433,7 @@ class _Settings {
     required this.enableHand,
     required this.enableFace,
     required this.detectEmotion,
+    required this.detectContours,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -432,6 +443,7 @@ class _Settings {
     required this.maxResultsPerSecond,
     required this.showHandLandmarks,
     required this.showFaceBoundingBox,
+    required this.showFaceContours,
     required this.showGestureLabel,
     required this.showEmotionLabel,
     required this.showStats,
@@ -445,6 +457,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool enableHand;
   final bool enableFace;
   final bool detectEmotion;
+  final bool detectContours;
   final int maxHands;
   final double minDetectionConfidence;
   final double minFaceSize;
@@ -454,6 +467,7 @@ class _SettingsSheet extends StatefulWidget {
   final int maxResultsPerSecond;
   final bool showHandLandmarks;
   final bool showFaceBoundingBox;
+  final bool showFaceContours;
   final bool showGestureLabel;
   final bool showEmotionLabel;
   final bool showStats;
@@ -463,6 +477,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.enableHand,
     required this.enableFace,
     required this.detectEmotion,
+    required this.detectContours,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -472,6 +487,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.maxResultsPerSecond,
     required this.showHandLandmarks,
     required this.showFaceBoundingBox,
+    required this.showFaceContours,
     required this.showGestureLabel,
     required this.showEmotionLabel,
     required this.showStats,
@@ -486,6 +502,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _enableHand = widget.enableHand;
   late bool _enableFace = widget.enableFace;
   late bool _detectEmotion = widget.detectEmotion;
+  late bool _detectContours = widget.detectContours;
   late int _maxHands = widget.maxHands;
   late double _minDetConf = widget.minDetectionConfidence;
   late double _minFaceSize = widget.minFaceSize;
@@ -494,6 +511,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late AnalysisResolution _res = widget.resolution;
   late int _maxResults = widget.maxResultsPerSecond;
   late bool _showLandmarks = widget.showHandLandmarks;
+  late bool _showContours = widget.showFaceContours;
   late bool _showFaceBox = widget.showFaceBoundingBox;
   late bool _showGesture = widget.showGestureLabel;
   late bool _showEmotion = widget.showEmotionLabel;
@@ -504,6 +522,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       enableHand: _enableHand,
       enableFace: _enableFace,
       detectEmotion: _detectEmotion,
+      detectContours: _detectContours,
       maxHands: _maxHands,
       minDetectionConfidence: _minDetConf,
       minFaceSize: _minFaceSize,
@@ -513,6 +532,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       maxResultsPerSecond: _maxResults,
       showHandLandmarks: _showLandmarks,
       showFaceBoundingBox: _showFaceBox,
+      showFaceContours: _showContours,
       showGestureLabel: _showGesture,
       showEmotionLabel: _showEmotion,
       showStats: _showStats,
@@ -558,6 +578,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           if (_enableFace)
             _toggle('Face Tracking', _faceTracking, (v) {
               setState(() => _faceTracking = v);
+              _emit();
+            }),
+          if (_enableFace)
+            _toggle('Face Contours (disables tracking)', _detectContours, (v) {
+              setState(() => _detectContours = v);
               _emit();
             }),
           const Divider(height: 32),
@@ -656,6 +681,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           }),
           _toggle('Face Bounding Box', _showFaceBox, (v) {
             setState(() => _showFaceBox = v);
+            _emit();
+          }),
+          _toggle('Face Contours Overlay', _showContours, (v) {
+            setState(() => _showContours = v);
             _emit();
           }),
           _toggle('Gesture Label', _showGesture, (v) {

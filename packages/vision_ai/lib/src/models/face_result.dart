@@ -1,4 +1,4 @@
-import 'dart:ui' show Rect;
+import 'dart:ui' show Offset, Rect;
 
 import 'emotion.dart';
 
@@ -16,6 +16,11 @@ class FaceResult {
   final double? rightEyeOpenProbability;
   final int trackingId;
 
+  /// Face contour groups (face outline, eyes, lips, eyebrows, nose).
+  /// Each list is a connected sequence of points in image pixel coordinates.
+  /// Null when [FaceConfig.detectContours] is false.
+  final List<List<Offset>>? contours;
+
   const FaceResult({
     required this.emotion,
     required this.emotionScores,
@@ -28,7 +33,10 @@ class FaceResult {
     this.leftEyeOpenProbability,
     this.rightEyeOpenProbability,
     this.trackingId = -1,
+    this.contours,
   });
+
+  bool get hasContours => contours != null && contours!.isNotEmpty;
 
   @override
   String toString() =>

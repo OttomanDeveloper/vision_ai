@@ -6,6 +6,7 @@ import android.graphics.Rect
 import android.util.Log
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceContour
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
@@ -17,10 +18,12 @@ class FaceDetectionProcessor(private val context: Context) {
     private var faceDetector: FaceDetector? = null
     private var emotionClassifier: EmotionClassifier? = null
     private var detectEmotion = true
+    private var detectContours = false
     private var minEmotionConfidence = 0.4f
 
     fun initialize(
         detectEmotion: Boolean = true,
+        detectContours: Boolean = false,
         minFaceSize: Float = 0.1f,
         enableTracking: Boolean = true,
         minEmotionConfidence: Float = 0.4f,
@@ -28,6 +31,7 @@ class FaceDetectionProcessor(private val context: Context) {
         close()
 
         this.detectEmotion = detectEmotion
+        this.detectContours = detectContours
         this.minEmotionConfidence = minEmotionConfidence
 
         val optionsBuilder = FaceDetectorOptions.Builder()
@@ -35,7 +39,12 @@ class FaceDetectionProcessor(private val context: Context) {
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
             .setMinFaceSize(minFaceSize)
 
-        if (enableTracking) {
+        if (detectContours) {
+            optionsBuilder.setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+        }
+
+        if (enableTracking && !detectContours) {
+            // ML Kit: tracking and contour mode can't be used together
             optionsBuilder.enableTracking()
         }
 
@@ -73,6 +82,15 @@ class FaceDetectionProcessor(private val context: Context) {
                 }
             }
 
+            // Extract contour points if enabled
+            var contourPoints: DoubleArray? = null
+            var contourSizes: IntArray? = null
+            if (detectContours) {
+                val extracted = extractContours(face)
+                contourPoints = extracted.first
+                contourSizes = extracted.second
+            }
+
             results.add(
                 SingleFaceResult(
                     emotion = emotionResult.primaryEmotion,
@@ -86,11 +104,50 @@ class FaceDetectionProcessor(private val context: Context) {
                     leftEyeOpenProbability = face.leftEyeOpenProbability?.toDouble(),
                     rightEyeOpenProbability = face.rightEyeOpenProbability?.toDouble(),
                     trackingId = face.trackingId ?: -1,
+                    contourPoints = contourPoints,
+                    contourSizes = contourSizes,
                 )
             )
         }
 
         return FaceProcessorResult(results)
+    }
+
+    // Extracts all contour points as a flat array + sizes per contour for reconstruction.
+    // Contour order: face, leftEyebrowTop, leftEyebrowBottom, rightEyebrowTop,
+    // rightEyebrowBottom, leftEye, rightEye, upperLipTop, upperLipBottom,
+    // lowerLipTop, lowerLipBottom, noseBridge, noseBottom
+    private fun extractContours(face: Face): Pair<DoubleArray, IntArray> {
+        val contourTypes = intArrayOf(
+            FaceContour.FACE,
+            FaceContour.LEFT_EYEBROW_TOP,
+            FaceContour.LEFT_EYEBROW_BOTTOM,
+            FaceContour.RIGHT_EYEBROW_TOP,
+            FaceContour.RIGHT_EYEBROW_BOTTOM,
+            FaceContour.LEFT_EYE,
+            FaceContour.RIGHT_EYE,
+            FaceContour.UPPER_LIP_TOP,
+            FaceContour.UPPER_LIP_BOTTOM,
+            FaceContour.LOWER_LIP_TOP,
+            FaceContour.LOWER_LIP_BOTTOM,
+            FaceContour.NOSE_BRIDGE,
+            FaceContour.NOSE_BOTTOM,
+        )
+
+        val allPoints = mutableListOf<Double>()
+        val sizes = IntArray(contourTypes.size)
+
+        for (i in contourTypes.indices) {
+            val contour = face.getContour(contourTypes[i])
+            val points = contour?.points ?: emptyList()
+            sizes[i] = points.size
+            for (pt in points) {
+                allPoints.add(pt.x.toDouble())
+                allPoints.add(pt.y.toDouble())
+            }
+        }
+
+        return Pair(allPoints.toDoubleArray(), sizes)
     }
 
     private fun cropFace(bitmap: Bitmap, bbox: Rect, pool: BitmapPool): Bitmap? {
@@ -139,6 +196,8 @@ data class SingleFaceResult(
     val leftEyeOpenProbability: Double?,
     val rightEyeOpenProbability: Double?,
     val trackingId: Int,
+    val contourPoints: DoubleArray?,
+    val contourSizes: IntArray?,
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         "emotion" to emotion,
@@ -155,6 +214,8 @@ data class SingleFaceResult(
         "leftEyeOpenProbability" to leftEyeOpenProbability,
         "rightEyeOpenProbability" to rightEyeOpenProbability,
         "trackingId" to trackingId,
+        "contourPoints" to contourPoints,
+        "contourSizes" to contourSizes?.toList(),
     )
 }
 
