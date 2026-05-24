@@ -31,14 +31,14 @@ class _CameraPageState extends State<CameraPage> {
   late final VisionAi _vision;
   int? _textureId;
   bool _isStarting = false;
-  String _status = 'Tap Start to begin';
-  int _frameCount = 0;
+  VisionResult? _latestResult;
   StreamSubscription<VisionResult>? _subscription;
 
   @override
   void initState() {
     super.initState();
     _vision = VisionAi.hand(
+      config: const HandConfig(maxHands: 2),
       camera: const CameraConfig(facing: CameraFacing.front),
     );
   }
@@ -50,15 +50,7 @@ class _CameraPageState extends State<CameraPage> {
     try {
       final textureId = await _vision.start();
       _subscription = _vision.results.listen((result) {
-        _frameCount++;
-        if (mounted) {
-          setState(() {
-            _status = 'Frame #$_frameCount | '
-                '${result.inferenceTimeMs}ms | '
-                'Hands: ${result.hands.length} | '
-                'Faces: ${result.faces.length}';
-          });
-        }
+        if (mounted) setState(() => _latestResult = result);
       });
       setState(() {
         _textureId = textureId;
@@ -66,9 +58,14 @@ class _CameraPageState extends State<CameraPage> {
       });
     } catch (e) {
       setState(() {
-        _status = 'Error: $e';
+        _latestResult = null;
         _isStarting = false;
       });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -78,8 +75,7 @@ class _CameraPageState extends State<CameraPage> {
     await _vision.stop();
     setState(() {
       _textureId = null;
-      _frameCount = 0;
-      _status = 'Stopped';
+      _latestResult = null;
     });
   }
 
@@ -92,30 +88,98 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   Widget build(BuildContext context) {
+    final result = _latestResult;
+    final hand = result?.primaryHand;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Vision AI — Camera Test')),
+      appBar: AppBar(title: const Text('Vision AI — Hand Gesture Demo')),
       body: Column(
         children: [
+          // Camera preview
           Expanded(
             child: _textureId != null
-                ? Texture(textureId: _textureId!)
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Texture(textureId: _textureId!),
+                      if (hand != null)
+                        Positioned(
+                          top: 20,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                _gestureDisplayName(hand.gesture),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  )
                 : const Center(
                     child: Text(
-                      'Camera preview will appear here',
+                      'Tap Start to begin camera',
                       style: TextStyle(fontSize: 16),
                     ),
                   ),
           ),
+
+          // Info panel
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             color: Colors.black87,
             width: double.infinity,
-            child: Text(
-              _status,
-              style: const TextStyle(color: Colors.greenAccent, fontSize: 14),
-              textAlign: TextAlign.center,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (result != null) ...[
+                  Text(
+                    'Gesture: ${hand != null ? _gestureDisplayName(hand.gesture) : "No hand"}'
+                    '${hand != null ? " (${(hand.gestureConfidence * 100).toStringAsFixed(0)}%)" : ""}',
+                    style: const TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Hands: ${result.hands.length} | '
+                    'Inference: ${result.inferenceTimeMs}ms | '
+                    '${hand != null ? (hand.isLeftHand ? "Left" : "Right") : ""}',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                  ),
+                  if (hand != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Fingers: ${_fingerStateString(hand.fingerStates)}',
+                      style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                    ),
+                  ],
+                ] else
+                  const Text(
+                    'Waiting for detection...',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+              ],
             ),
           ),
+
+          // Controls
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -137,5 +201,38 @@ class _CameraPageState extends State<CameraPage> {
         ],
       ),
     );
+  }
+
+  String _gestureDisplayName(Gesture gesture) => switch (gesture) {
+        Gesture.fist => 'FIST ✊',
+        Gesture.openHand => 'OPEN HAND ✋',
+        Gesture.peace => 'PEACE ✌️',
+        Gesture.thumbsUp => 'THUMBS UP 👍',
+        Gesture.thumbsDown => 'THUMBS DOWN 👎',
+        Gesture.pointingUp => 'POINTING ☝️',
+        Gesture.ok => 'OK 👌',
+        Gesture.iLoveYou => 'I LOVE YOU 🤟',
+        Gesture.one => 'ONE 1️⃣',
+        Gesture.two => 'TWO 2️⃣',
+        Gesture.three => 'THREE 3️⃣',
+        Gesture.four => 'FOUR 4️⃣',
+        Gesture.five => 'FIVE 5️⃣',
+        Gesture.custom => 'CUSTOM',
+        Gesture.none => 'NONE',
+      };
+
+  String _fingerStateString(Map<Finger, FingerState> states) {
+    final labels = {
+      Finger.thumb: 'T',
+      Finger.indexFinger: 'I',
+      Finger.middle: 'M',
+      Finger.ring: 'R',
+      Finger.pinky: 'P',
+    };
+    return states.entries.map((e) {
+      final label = labels[e.key] ?? '?';
+      final icon = e.value == FingerState.extended ? '↑' : '↓';
+      return '$label$icon';
+    }).join(' ');
   }
 }

@@ -9,6 +9,7 @@ import androidx.lifecycle.LifecycleRegistry
 import com.visionai.vision_ai.camera.CameraManager
 import com.visionai.vision_ai.core.FrameProcessor
 import com.visionai.vision_ai.core.ResultAggregator
+import com.visionai.vision_ai.hand.HandGestureProcessor
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -33,6 +34,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var cameraManager: CameraManager? = null
     private var frameProcessor: FrameProcessor? = null
     private var resultAggregator: ResultAggregator? = null
+    private var handProcessor: HandGestureProcessor? = null
     private var activity: Activity? = null
     private var lifecycleOwner: PluginLifecycleOwner? = null
 
@@ -53,8 +55,8 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             "startCamera" -> handleStartCamera(call, result)
             "stopCamera" -> handleStopCamera(result)
             "switchCamera" -> handleSwitchCamera(call, result)
-            "updateHandConfig" -> result.success(null) // Phase 2
-            "updateFaceConfig" -> result.success(null) // Phase 4
+            "updateHandConfig" -> handleUpdateHandConfig(call, result)
+            "updateFaceConfig" -> result.success(null)
             "dispose" -> handleDispose(result)
             else -> result.notImplemented()
         }
@@ -69,9 +71,31 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         val facing = call.argument<Int>("cameraFacing") ?: 0
         val resolution = call.argument<Int>("resolution") ?: 1
+        val enableHand = call.argument<Boolean>("enableHand") ?: false
+        val isFrontCamera = facing == 0
+
+        // Initialize hand processor if enabled
+        if (enableHand) {
+            val maxHands = call.argument<Int>("maxHands") ?: 2
+            val minDetection = call.argument<Double>("minDetectionConfidence")?.toFloat() ?: 0.5f
+            val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
+            val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
+
+            handProcessor = HandGestureProcessor(act)
+            handProcessor!!.initialize(
+                maxHands = maxHands,
+                minDetectionConfidence = minDetection,
+                minPresenceConfidence = minPresence,
+                minTrackingConfidence = minTracking,
+            )
+        }
 
         resultAggregator = ResultAggregator(mainHandler) { resultStreamHandler.eventSink }
-        frameProcessor = FrameProcessor(resultAggregator!!)
+        frameProcessor = FrameProcessor(
+            resultAggregator = resultAggregator!!,
+            handProcessor = handProcessor,
+            isFrontCamera = isFrontCamera,
+        )
 
         val owner = PluginLifecycleOwner()
         lifecycleOwner = owner
@@ -93,7 +117,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             owner.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
             result.success(textureId)
         } catch (e: Exception) {
-            result.error("CAMERA_ERROR", e.message, null)
+            result.error("CAMERA_ERROR", e.message, e.stackTraceToString())
         }
     }
 
@@ -101,6 +125,8 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         cameraManager?.stop()
+        handProcessor?.close()
+        handProcessor = null
         result.success(null)
     }
 
@@ -110,12 +136,35 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         result.success(null)
     }
 
+    private fun handleUpdateHandConfig(call: MethodCall, result: Result) {
+        val act = activity
+        if (act == null || handProcessor == null) {
+            result.success(null)
+            return
+        }
+
+        val maxHands = call.argument<Int>("maxHands") ?: 2
+        val minDetection = call.argument<Double>("minDetectionConfidence")?.toFloat() ?: 0.5f
+        val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
+        val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
+
+        handProcessor!!.initialize(
+            maxHands = maxHands,
+            minDetectionConfidence = minDetection,
+            minPresenceConfidence = minPresence,
+            minTrackingConfidence = minTracking,
+        )
+        result.success(null)
+    }
+
     private fun handleDispose(result: Result) {
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         cameraManager?.release()
+        handProcessor?.close()
         cameraManager = null
         frameProcessor = null
         resultAggregator = null
+        handProcessor = null
         lifecycleOwner = null
         result.success(null)
     }
@@ -141,6 +190,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         commandChannel.setMethodCallHandler(null)
         resultChannel.setStreamHandler(null)
         cameraManager?.release()
+        handProcessor?.close()
         analysisExecutor.shutdown()
     }
 }
