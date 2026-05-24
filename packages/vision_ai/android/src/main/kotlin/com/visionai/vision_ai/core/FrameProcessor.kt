@@ -1,14 +1,17 @@
 package com.visionai.vision_ai.core
 
+import android.graphics.Bitmap
 import android.os.SystemClock
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import com.visionai.vision_ai.face.FaceDetectionProcessor
 import com.visionai.vision_ai.hand.HandGestureProcessor
 
 class FrameProcessor(
     private val resultAggregator: ResultAggregator,
     private val handProcessor: HandGestureProcessor? = null,
+    private val faceProcessor: FaceDetectionProcessor? = null,
     private val isFrontCamera: Boolean = true,
 ) : ImageAnalysis.Analyzer {
 
@@ -24,9 +27,22 @@ class FrameProcessor(
                 Log.d(TAG, "Processed $frameCount frames")
             }
 
-            if (handProcessor != null) {
-                val bitmap = ImageConverter.imageProxyToBitmap(imageProxy, isFrontCamera)
+            // Convert frame once, reuse for both processors
+            var bitmap: Bitmap? = null
+            if (handProcessor != null || faceProcessor != null) {
+                bitmap = ImageConverter.imageProxyToBitmap(imageProxy, isFrontCamera)
+            }
+
+            // Hand gesture detection (async via MediaPipe LIVE_STREAM)
+            if (handProcessor != null && bitmap != null) {
                 handProcessor.processFrame(bitmap, timestamp)
+            }
+
+            // Face emotion detection (sync via ML Kit)
+            val faceResult = if (faceProcessor != null && bitmap != null) {
+                faceProcessor.processFrame(bitmap, imageProxy.imageInfo.rotationDegrees)
+            } else {
+                null
             }
 
             val handResult = handProcessor?.getLatestResult()
@@ -46,7 +62,7 @@ class FrameProcessor(
 
             resultAggregator.emit(
                 handResults = handResult?.toMapList() ?: emptyList(),
-                faceResults = emptyList(),
+                faceResults = faceResult?.toMapList() ?: emptyList(),
                 timestampMs = timestamp,
                 inferenceTimeMs = inferenceTime,
                 imageWidth = imageWidth,

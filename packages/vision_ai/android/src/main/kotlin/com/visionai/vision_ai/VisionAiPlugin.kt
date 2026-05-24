@@ -9,6 +9,7 @@ import androidx.lifecycle.LifecycleRegistry
 import com.visionai.vision_ai.camera.CameraManager
 import com.visionai.vision_ai.core.FrameProcessor
 import com.visionai.vision_ai.core.ResultAggregator
+import com.visionai.vision_ai.face.FaceDetectionProcessor
 import com.visionai.vision_ai.hand.CustomGestureConfig
 import com.visionai.vision_ai.hand.HandGestureProcessor
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -36,6 +37,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var frameProcessor: FrameProcessor? = null
     private var resultAggregator: ResultAggregator? = null
     private var handProcessor: HandGestureProcessor? = null
+    private var faceProcessor: FaceDetectionProcessor? = null
     private var activity: Activity? = null
     private var lifecycleOwner: PluginLifecycleOwner? = null
 
@@ -57,7 +59,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             "stopCamera" -> handleStopCamera(result)
             "switchCamera" -> handleSwitchCamera(call, result)
             "updateHandConfig" -> handleUpdateHandConfig(call, result)
-            "updateFaceConfig" -> result.success(null)
+            "updateFaceConfig" -> handleUpdateFaceConfig(call, result)
             "dispose" -> handleDispose(result)
             else -> result.notImplemented()
         }
@@ -94,10 +96,28 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             )
         }
 
+        // Initialize face processor if enabled
+        val enableFace = call.argument<Boolean>("enableFace") ?: false
+        if (enableFace) {
+            val faceDetectEmotion = call.argument<Boolean>("detectEmotion") ?: true
+            val faceMinSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
+            val faceEnableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
+            val faceMinEmotionConf = call.argument<Double>("minEmotionConfidence")?.toFloat() ?: 0.4f
+
+            faceProcessor = FaceDetectionProcessor(act)
+            faceProcessor!!.initialize(
+                detectEmotion = faceDetectEmotion,
+                minFaceSize = faceMinSize,
+                enableTracking = faceEnableTracking,
+                minEmotionConfidence = faceMinEmotionConf,
+            )
+        }
+
         resultAggregator = ResultAggregator(mainHandler) { resultStreamHandler.eventSink }
         frameProcessor = FrameProcessor(
             resultAggregator = resultAggregator!!,
             handProcessor = handProcessor,
+            faceProcessor = faceProcessor,
             isFrontCamera = isFrontCamera,
         )
 
@@ -130,7 +150,9 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         cameraManager?.stop()
         handProcessor?.close()
+        faceProcessor?.close()
         handProcessor = null
+        faceProcessor = null
         result.success(null)
     }
 
@@ -163,6 +185,27 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         result.success(null)
     }
 
+    private fun handleUpdateFaceConfig(call: MethodCall, result: Result) {
+        val act = activity
+        if (act == null || faceProcessor == null) {
+            result.success(null)
+            return
+        }
+
+        val detectEmotion = call.argument<Boolean>("detectEmotion") ?: true
+        val minFaceSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
+        val enableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
+        val minEmotionConf = call.argument<Double>("minEmotionConfidence")?.toFloat() ?: 0.4f
+
+        faceProcessor!!.initialize(
+            detectEmotion = detectEmotion,
+            minFaceSize = minFaceSize,
+            enableTracking = enableTracking,
+            minEmotionConfidence = minEmotionConf,
+        )
+        result.success(null)
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun parseCustomGestures(call: MethodCall): List<CustomGestureConfig> {
         val rawList = call.argument<List<Map<String, Any>>>("customGestures") ?: return emptyList()
@@ -178,10 +221,12 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         cameraManager?.release()
         handProcessor?.close()
+        faceProcessor?.close()
         cameraManager = null
         frameProcessor = null
         resultAggregator = null
         handProcessor = null
+        faceProcessor = null
         lifecycleOwner = null
         result.success(null)
     }
@@ -208,6 +253,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         resultChannel.setStreamHandler(null)
         cameraManager?.release()
         handProcessor?.close()
+        faceProcessor?.close()
         analysisExecutor.shutdown()
     }
 }

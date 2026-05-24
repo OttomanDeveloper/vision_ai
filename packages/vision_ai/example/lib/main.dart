@@ -37,8 +37,8 @@ class _CameraPageState extends State<CameraPage> {
   @override
   void initState() {
     super.initState();
-    _vision = VisionAi.hand(
-      config: HandConfig(
+    _vision = VisionAi(
+      hand: HandConfig(
         maxHands: 2,
         customGestures: [
           CustomGesture(
@@ -53,6 +53,7 @@ class _CameraPageState extends State<CameraPage> {
           ),
         ],
       ),
+      face: const FaceConfig(detectEmotion: true),
       camera: const CameraConfig(facing: CameraFacing.front),
     );
   }
@@ -104,9 +105,10 @@ class _CameraPageState extends State<CameraPage> {
   Widget build(BuildContext context) {
     final result = _latestResult;
     final hand = result?.primaryHand;
+    final face = result?.primaryFace;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Vision AI — Hand Gesture Demo')),
+      appBar: AppBar(title: const Text('Vision AI — Combined Demo')),
       body: Column(
         children: [
           // Camera preview
@@ -144,6 +146,32 @@ class _CameraPageState extends State<CameraPage> {
                             ),
                           ),
                         ),
+                      if (face != null && face.emotion.isRecognized)
+                        Positioned(
+                          bottom: 20,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                _emotionDisplayName(face.emotion),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   )
                 : const Center(
@@ -174,15 +202,25 @@ class _CameraPageState extends State<CameraPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Hands: ${result.hands.length} | '
-                    'Inference: ${result.inferenceTimeMs}ms | '
-                    '${hand != null ? (hand.isLeftHand ? "Left" : "Right") : ""}',
+                    'Emotion: ${face != null && face.emotion.isRecognized ? _emotionDisplayName(face.emotion) : "No face"}'
+                    '${face != null && face.emotion.isRecognized ? " (${(face.emotionConfidence * 100).toStringAsFixed(0)}%)" : ""}',
+                    style: const TextStyle(
+                      color: Colors.lightBlueAccent,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Hands: ${result.hands.length} | Faces: ${result.faces.length} | '
+                    '${result.inferenceTimeMs}ms',
                     style: TextStyle(color: Colors.grey[400], fontSize: 12),
                   ),
                   if (hand != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Fingers: ${_fingerStateString(hand.fingerStates)}',
+                      'Fingers: ${_fingerStateString(hand.fingerStates)} | '
+                      '${hand.isLeftHand ? "Left" : "Right"} hand',
                       style: TextStyle(color: Colors.grey[400], fontSize: 12),
                     ),
                   ],
@@ -235,6 +273,17 @@ class _CameraPageState extends State<CameraPage> {
         Gesture.five => 'FIVE 5️⃣',
         Gesture.custom => 'CUSTOM',
         Gesture.none => 'NONE',
+      };
+
+  String _emotionDisplayName(Emotion emotion) => switch (emotion) {
+        Emotion.happy => 'HAPPY 😊',
+        Emotion.sad => 'SAD 😢',
+        Emotion.angry => 'ANGRY 😠',
+        Emotion.surprised => 'SURPRISED 😮',
+        Emotion.disgusted => 'DISGUSTED 🤢',
+        Emotion.fearful => 'FEARFUL 😨',
+        Emotion.neutral => 'NEUTRAL 😐',
+        Emotion.none => 'NONE',
       };
 
   String _fingerStateString(Map<Finger, FingerState> states) {
