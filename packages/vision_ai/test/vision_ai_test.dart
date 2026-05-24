@@ -88,6 +88,69 @@ void main() {
     });
   });
 
+  group('CustomGesture', () {
+    test('creates with finger state map', () {
+      final gesture = CustomGesture(
+        name: 'rock',
+        fingerStates: {
+          Finger.thumb: FingerState.closed,
+          Finger.indexFinger: FingerState.extended,
+          Finger.middle: FingerState.closed,
+          Finger.ring: FingerState.closed,
+          Finger.pinky: FingerState.extended,
+        },
+      );
+      expect(gesture.name, 'rock');
+      expect(gesture.fingerStates.length, 5);
+      expect(gesture.fingerStates[Finger.indexFinger], FingerState.extended);
+      expect(gesture.fingerStates[Finger.middle], FingerState.closed);
+    });
+
+    test('partial finger state map is valid', () {
+      final gesture = CustomGesture(
+        name: 'point',
+        fingerStates: {
+          Finger.indexFinger: FingerState.extended,
+        },
+      );
+      expect(gesture.fingerStates.length, 1);
+      expect(gesture.fingerStates[Finger.thumb], isNull);
+    });
+  });
+
+  group('HandResult', () {
+    test('toString includes gesture info', () {
+      const result = HandResult(
+        gesture: Gesture.thumbsUp,
+        gestureConfidence: 0.94,
+        landmarks: [],
+        worldLandmarks: [],
+        isLeftHand: true,
+        handednessConfidence: 0.98,
+        fingerStates: {
+          Finger.thumb: FingerState.extended,
+          Finger.indexFinger: FingerState.closed,
+          Finger.middle: FingerState.closed,
+          Finger.ring: FingerState.closed,
+          Finger.pinky: FingerState.closed,
+        },
+      );
+      expect(result.toString(), contains('thumbsUp'));
+      expect(result.toString(), contains('0.94'));
+    });
+  });
+
+  group('Finger enum', () {
+    test('all fingers accounted for', () {
+      expect(Finger.values.length, 5);
+      expect(Finger.values, contains(Finger.thumb));
+      expect(Finger.values, contains(Finger.indexFinger));
+      expect(Finger.values, contains(Finger.middle));
+      expect(Finger.values, contains(Finger.ring));
+      expect(Finger.values, contains(Finger.pinky));
+    });
+  });
+
   group('VisionResult', () {
     test('hasHands and hasFaces return correctly', () {
       const result = VisionResult(

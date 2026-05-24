@@ -9,6 +9,7 @@ import androidx.lifecycle.LifecycleRegistry
 import com.visionai.vision_ai.camera.CameraManager
 import com.visionai.vision_ai.core.FrameProcessor
 import com.visionai.vision_ai.core.ResultAggregator
+import com.visionai.vision_ai.hand.CustomGestureConfig
 import com.visionai.vision_ai.hand.HandGestureProcessor
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -81,12 +82,15 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
             val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
 
+            val customGestureConfigs = parseCustomGestures(call)
+
             handProcessor = HandGestureProcessor(act)
             handProcessor!!.initialize(
                 maxHands = maxHands,
                 minDetectionConfidence = minDetection,
                 minPresenceConfidence = minPresence,
                 minTrackingConfidence = minTracking,
+                customGestures = customGestureConfigs,
             )
         }
 
@@ -147,14 +151,27 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val minDetection = call.argument<Double>("minDetectionConfidence")?.toFloat() ?: 0.5f
         val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
         val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
+        val customGestureConfigs = parseCustomGestures(call)
 
         handProcessor!!.initialize(
             maxHands = maxHands,
             minDetectionConfidence = minDetection,
             minPresenceConfidence = minPresence,
             minTrackingConfidence = minTracking,
+            customGestures = customGestureConfigs,
         )
         result.success(null)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun parseCustomGestures(call: MethodCall): List<CustomGestureConfig> {
+        val rawList = call.argument<List<Map<String, Any>>>("customGestures") ?: return emptyList()
+        return rawList.mapNotNull { map ->
+            val name = map["name"] as? String ?: return@mapNotNull null
+            val states = map["fingerStates"] as? List<Int> ?: return@mapNotNull null
+            if (states.size != 5) return@mapNotNull null
+            CustomGestureConfig(name, states.toIntArray())
+        }
     }
 
     private fun handleDispose(result: Result) {

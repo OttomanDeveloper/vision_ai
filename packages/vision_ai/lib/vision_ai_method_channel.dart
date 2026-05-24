@@ -39,11 +39,11 @@ class VisionAiMethodChannel extends VisionAiPlatform {
               (g) => {
                 'name': g.name,
                 'fingerStates': [
-                  g.fingerStates[Finger.thumb]?.index ?? -1,
-                  g.fingerStates[Finger.indexFinger]?.index ?? -1,
-                  g.fingerStates[Finger.middle]?.index ?? -1,
-                  g.fingerStates[Finger.ring]?.index ?? -1,
-                  g.fingerStates[Finger.pinky]?.index ?? -1,
+                  _fingerStateToNative(g.fingerStates[Finger.thumb]),
+                  _fingerStateToNative(g.fingerStates[Finger.indexFinger]),
+                  _fingerStateToNative(g.fingerStates[Finger.middle]),
+                  _fingerStateToNative(g.fingerStates[Finger.ring]),
+                  _fingerStateToNative(g.fingerStates[Finger.pinky]),
                 ],
               },
             )
@@ -70,6 +70,20 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         'minDetectionConfidence': config.minDetectionConfidence,
         'minPresenceConfidence': config.minPresenceConfidence,
         'minTrackingConfidence': config.minTrackingConfidence,
+        'customGestures': config.customGestures
+            .map(
+              (g) => {
+                'name': g.name,
+                'fingerStates': [
+                  _fingerStateToNative(g.fingerStates[Finger.thumb]),
+                  _fingerStateToNative(g.fingerStates[Finger.indexFinger]),
+                  _fingerStateToNative(g.fingerStates[Finger.middle]),
+                  _fingerStateToNative(g.fingerStates[Finger.ring]),
+                  _fingerStateToNative(g.fingerStates[Finger.pinky]),
+                ],
+              },
+            )
+            .toList(),
       });
 
   @override
@@ -214,5 +228,12 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         'fearful' => Emotion.fearful,
         'neutral' => Emotion.neutral,
         _ => Emotion.none,
+      };
+
+  // Kotlin uses 1=extended, 0=closed, -1=any
+  static int _fingerStateToNative(FingerState? state) => switch (state) {
+        FingerState.extended => 1,
+        FingerState.closed => 0,
+        null => -1,
       };
 }

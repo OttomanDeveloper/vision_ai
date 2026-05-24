@@ -2,10 +2,8 @@ package com.visionai.vision_ai.hand
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.os.SystemClock
 import android.util.Log
 import com.google.mediapipe.framework.image.BitmapImageBuilder
-import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -15,6 +13,7 @@ import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResu
 class HandGestureProcessor(private val context: Context) {
 
     private var gestureRecognizer: GestureRecognizer? = null
+    private var customClassifier: CustomGestureClassifier? = null
 
     @Volatile
     private var latestResult: HandProcessorResult? = null
@@ -24,6 +23,7 @@ class HandGestureProcessor(private val context: Context) {
         minDetectionConfidence: Float = 0.5f,
         minPresenceConfidence: Float = 0.5f,
         minTrackingConfidence: Float = 0.5f,
+        customGestures: List<CustomGestureConfig> = emptyList(),
     ) {
         close()
 
@@ -52,6 +52,7 @@ class HandGestureProcessor(private val context: Context) {
             .build()
 
         gestureRecognizer = GestureRecognizer.createFromOptions(context, options)
+        customClassifier = CustomGestureClassifier(customGestures)
     }
 
     fun processFrame(bitmap: Bitmap, timestampMs: Long) {
@@ -79,20 +80,36 @@ class HandGestureProcessor(private val context: Context) {
             val handedness = result.handednesses()[i]
 
             val gestures = result.gestures()
-            val gestureName = if (i < gestures.size && gestures[i].isNotEmpty()) {
+            var gestureName = if (i < gestures.size && gestures[i].isNotEmpty()) {
                 gestures[i][0].categoryName() ?: "None"
             } else {
                 "None"
             }
-            val gestureScore = if (i < gestures.size && gestures[i].isNotEmpty()) {
-                gestures[i][0].score()
+            var gestureScore = if (i < gestures.size && gestures[i].isNotEmpty()) {
+                gestures[i][0].score().toDouble()
             } else {
-                0f
+                0.0
             }
+            var customGestureName: String? = null
 
             val isLeft = handedness.isNotEmpty() &&
                     handedness[0].categoryName().equals("Left", ignoreCase = true)
             val handednessScore = if (handedness.isNotEmpty()) handedness[0].score() else 0f
+
+            val fingerStates = computeFingerStates(landmarks, isLeft)
+
+            // When MediaPipe doesn't recognize a built-in gesture, try custom classification
+            if (gestureName == "None" && customClassifier != null) {
+                val customMatch = customClassifier!!.classify(landmarks, fingerStates, isLeft)
+                if (customMatch != null) {
+                    gestureName = customMatch.gestureName
+                    gestureScore = customMatch.confidence
+                    // If it's a user-defined custom gesture (not ok/counting), set customGestureName
+                    if (gestureName !in BUILT_IN_CUSTOM_NAMES) {
+                        customGestureName = gestureName
+                    }
+                }
+            }
 
             val normalizedLandmarks = DoubleArray(63)
             for (j in landmarks.indices) {
@@ -108,12 +125,11 @@ class HandGestureProcessor(private val context: Context) {
                 worldLandmarkArray[j * 3 + 2] = worldLandmarks[j].z().toDouble()
             }
 
-            val fingerStates = computeFingerStates(landmarks, isLeft)
-
             hands.add(
                 SingleHandResult(
                     gestureName = gestureName,
-                    gestureConfidence = gestureScore.toDouble(),
+                    gestureConfidence = gestureScore,
+                    customGestureName = customGestureName,
                     landmarks = normalizedLandmarks,
                     worldLandmarks = worldLandmarkArray,
                     isLeftHand = isLeft,
@@ -132,7 +148,6 @@ class HandGestureProcessor(private val context: Context) {
     ): IntArray {
         val states = IntArray(5)
 
-        // Thumb: compare tip.x vs ip.x relative to hand orientation
         val thumbTip = landmarks[4]
         val thumbIp = landmarks[3]
         states[0] = if (isLeft) {
@@ -141,35 +156,31 @@ class HandGestureProcessor(private val context: Context) {
             if (thumbTip.x() < thumbIp.x()) 1 else 0
         }
 
-        // Index: tip above PIP (lower y = higher in image)
         states[1] = if (landmarks[8].y() < landmarks[6].y()) 1 else 0
-
-        // Middle
         states[2] = if (landmarks[12].y() < landmarks[10].y()) 1 else 0
-
-        // Ring
         states[3] = if (landmarks[16].y() < landmarks[14].y()) 1 else 0
-
-        // Pinky
         states[4] = if (landmarks[20].y() < landmarks[18].y()) 1 else 0
 
-        return states // 1 = extended, 0 = closed
+        return states
     }
 
     fun close() {
         gestureRecognizer?.close()
         gestureRecognizer = null
+        customClassifier = null
         latestResult = null
     }
 
     companion object {
         private const val TAG = "HandGestureProcessor"
+        private val BUILT_IN_CUSTOM_NAMES = setOf("ok", "one", "two", "three", "four", "five")
     }
 }
 
 data class SingleHandResult(
     val gestureName: String,
     val gestureConfidence: Double,
+    val customGestureName: String?,
     val landmarks: DoubleArray,
     val worldLandmarks: DoubleArray,
     val isLeftHand: Boolean,
@@ -179,7 +190,7 @@ data class SingleHandResult(
     fun toMap(): Map<String, Any?> = mapOf(
         "gesture" to gestureName,
         "gestureConfidence" to gestureConfidence,
-        "customGestureName" to null,
+        "customGestureName" to customGestureName,
         "landmarks" to landmarks,
         "worldLandmarks" to worldLandmarks,
         "isLeftHand" to isLeftHand,

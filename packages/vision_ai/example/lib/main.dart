@@ -38,7 +38,21 @@ class _CameraPageState extends State<CameraPage> {
   void initState() {
     super.initState();
     _vision = VisionAi.hand(
-      config: const HandConfig(maxHands: 2),
+      config: HandConfig(
+        maxHands: 2,
+        customGestures: [
+          CustomGesture(
+            name: 'rock',
+            fingerStates: {
+              Finger.thumb: FingerState.closed,
+              Finger.indexFinger: FingerState.extended,
+              Finger.middle: FingerState.closed,
+              Finger.ring: FingerState.closed,
+              Finger.pinky: FingerState.extended,
+            },
+          ),
+        ],
+      ),
       camera: const CameraConfig(facing: CameraFacing.front),
     );
   }
@@ -118,7 +132,9 @@ class _CameraPageState extends State<CameraPage> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
-                                _gestureDisplayName(hand.gesture),
+                                hand.gesture == Gesture.custom
+                                    ? (hand.customGestureName ?? 'CUSTOM').toUpperCase()
+                                    : _gestureDisplayName(hand.gesture),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 32,
