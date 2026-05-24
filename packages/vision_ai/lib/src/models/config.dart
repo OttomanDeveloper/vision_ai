@@ -55,6 +55,11 @@ class FaceConfig {
   /// Minimum confidence to accept an emotion classification [0.0, 1.0].
   final double minEmotionConfidence;
 
+  /// Use ML Kit's accurate detection mode instead of fast mode.
+  /// Improves detection quality (fewer missed faces, better landmarks)
+  /// at the cost of higher latency (~2-3x slower per frame).
+  final bool accurateMode;
+
   const FaceConfig({
     this.detectEmotion = true,
     this.detectLandmarks = false,
@@ -62,6 +67,7 @@ class FaceConfig {
     this.minFaceSize = 0.1,
     this.enableTracking = true,
     this.minEmotionConfidence = 0.4,
+    this.accurateMode = false,
   });
 }
 

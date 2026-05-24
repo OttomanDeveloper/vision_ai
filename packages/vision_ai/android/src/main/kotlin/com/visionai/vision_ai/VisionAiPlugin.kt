@@ -113,6 +113,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val faceMinSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
                 val faceEnableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
                 val faceMinEmotionConf = call.argument<Double>("minEmotionConfidence")?.toFloat() ?: 0.4f
+                val faceAccurateMode = call.argument<Boolean>("accurateMode") ?: false
 
                 faceProcessor = FaceDetectionProcessor(act)
                 faceProcessor!!.initialize(
@@ -122,6 +123,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                     minFaceSize = faceMinSize,
                     enableTracking = faceEnableTracking,
                     minEmotionConfidence = faceMinEmotionConf,
+                    accurateMode = faceAccurateMode,
                 )
             }
         } catch (e: Exception) {
@@ -237,6 +239,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val minFaceSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
         val enableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
         val minEmotionConf = call.argument<Double>("minEmotionConfidence")?.toFloat() ?: 0.4f
+        val accurateMode = call.argument<Boolean>("accurateMode") ?: false
 
         faceProcessor!!.initialize(
             detectEmotion = detectEmotion,
@@ -244,6 +247,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             minFaceSize = minFaceSize,
             enableTracking = enableTracking,
             minEmotionConfidence = minEmotionConf,
+            accurateMode = accurateMode,
         )
         result.success(null)
     }

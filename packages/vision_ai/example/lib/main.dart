@@ -47,6 +47,7 @@ class _CameraPageState extends State<CameraPage> {
   double _minDetectionConfidence = 0.5;
   double _minFaceSize = 0.1;
   bool _enableFaceTracking = true;
+  bool _faceAccurateMode = false;
   CameraFacing _cameraFacing = CameraFacing.front;
   AnalysisResolution _resolution = AnalysisResolution.medium;
   int _maxResultsPerSecond = 0; // 0 = no throttle
@@ -98,6 +99,7 @@ class _CameraPageState extends State<CameraPage> {
               detectContours: _detectContours,
               minFaceSize: _minFaceSize,
               enableTracking: _enableFaceTracking,
+              accurateMode: _faceAccurateMode,
             )
           : null,
       camera: CameraConfig(
@@ -247,6 +249,7 @@ class _CameraPageState extends State<CameraPage> {
         minDetectionConfidence: _minDetectionConfidence,
         minFaceSize: _minFaceSize,
         enableFaceTracking: _enableFaceTracking,
+        faceAccurateMode: _faceAccurateMode,
         cameraFacing: _cameraFacing,
         resolution: _resolution,
         maxResultsPerSecond: _maxResultsPerSecond,
@@ -271,6 +274,7 @@ class _CameraPageState extends State<CameraPage> {
             _minDetectionConfidence = settings.minDetectionConfidence;
             _minFaceSize = settings.minFaceSize;
             _enableFaceTracking = settings.enableFaceTracking;
+            _faceAccurateMode = settings.faceAccurateMode;
             _cameraFacing = settings.cameraFacing;
             _resolution = settings.resolution;
             _maxResultsPerSecond = settings.maxResultsPerSecond;
@@ -499,6 +503,7 @@ class _Settings {
   final double minDetectionConfidence;
   final double minFaceSize;
   final bool enableFaceTracking;
+  final bool faceAccurateMode;
   final bool detectLandmarks;
   final bool detectContours;
   final bool enableBlinkDetection;
@@ -529,6 +534,7 @@ class _Settings {
     required this.minDetectionConfidence,
     required this.minFaceSize,
     required this.enableFaceTracking,
+    required this.faceAccurateMode,
     required this.cameraFacing,
     required this.resolution,
     required this.maxResultsPerSecond,
@@ -558,6 +564,7 @@ class _SettingsSheet extends StatefulWidget {
   final double minDetectionConfidence;
   final double minFaceSize;
   final bool enableFaceTracking;
+  final bool faceAccurateMode;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
@@ -583,6 +590,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.minDetectionConfidence,
     required this.minFaceSize,
     required this.enableFaceTracking,
+    required this.faceAccurateMode,
     required this.cameraFacing,
     required this.resolution,
     required this.maxResultsPerSecond,
@@ -613,6 +621,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late double _minDetConf = widget.minDetectionConfidence;
   late double _minFaceSize = widget.minFaceSize;
   late bool _faceTracking = widget.enableFaceTracking;
+  late bool _accurateMode = widget.faceAccurateMode;
   late CameraFacing _facing = widget.cameraFacing;
   late AnalysisResolution _res = widget.resolution;
   late int _maxResults = widget.maxResultsPerSecond;
@@ -638,6 +647,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       minDetectionConfidence: _minDetConf,
       minFaceSize: _minFaceSize,
       enableFaceTracking: _faceTracking,
+      faceAccurateMode: _accurateMode,
       cameraFacing: _facing,
       resolution: _res,
       maxResultsPerSecond: _maxResults,
@@ -806,6 +816,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           const SizedBox(height: 8),
           _slider('Min Face Size', _minFaceSize, 0.05, 0.5, (v) {
             setState(() => _minFaceSize = v);
+            _emit();
+          }),
+          _toggle('Accurate Mode (slower)', _accurateMode, (v) {
+            setState(() => _accurateMode = v);
             _emit();
           }),
           const Divider(height: 32),

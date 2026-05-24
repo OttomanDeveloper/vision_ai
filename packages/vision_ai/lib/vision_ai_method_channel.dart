@@ -70,6 +70,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         'minFaceSize': faceConfig.minFaceSize,
         'enableFaceTracking': faceConfig.enableTracking,
         'minEmotionConfidence': faceConfig.minEmotionConfidence,
+        'accurateMode': faceConfig.accurateMode,
       },
     });
     return result!;
@@ -110,6 +111,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         'minFaceSize': config.minFaceSize,
         'enableFaceTracking': config.enableTracking,
         'minEmotionConfidence': config.minEmotionConfidence,
+        'accurateMode': config.accurateMode,
       });
 
   @override

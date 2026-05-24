@@ -35,6 +35,7 @@ class FaceDetectionProcessor(private val context: Context) {
         minFaceSize: Float = 0.1f,
         enableTracking: Boolean = true,
         minEmotionConfidence: Float = 0.4f,
+        accurateMode: Boolean = false,
     ) {
         close()
 
@@ -43,8 +44,13 @@ class FaceDetectionProcessor(private val context: Context) {
         this.detectLandmarks = detectLandmarks
         this.minEmotionConfidence = minEmotionConfidence
 
+        val performanceMode = if (accurateMode)
+            FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE
+        else
+            FaceDetectorOptions.PERFORMANCE_MODE_FAST
+
         val optionsBuilder = FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+            .setPerformanceMode(performanceMode)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
             .setMinFaceSize(minFaceSize)
 
