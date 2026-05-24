@@ -159,10 +159,10 @@ class FaceDetectionProcessor(private val context: Context) {
         return result
     }
 
-    // Extracts all contour points as a flat array + sizes per contour for reconstruction.
+    // Extracts all 15 ML Kit contour types as a flat array + sizes per contour.
     // Contour order: face, leftEyebrowTop, leftEyebrowBottom, rightEyebrowTop,
     // rightEyebrowBottom, leftEye, rightEye, upperLipTop, upperLipBottom,
-    // lowerLipTop, lowerLipBottom, noseBridge, noseBottom
+    // lowerLipTop, lowerLipBottom, noseBridge, noseBottom, leftCheek, rightCheek
     private fun extractContours(face: Face): Pair<DoubleArray, IntArray> {
         val contourTypes = intArrayOf(
             FaceContour.FACE,
@@ -178,6 +178,8 @@ class FaceDetectionProcessor(private val context: Context) {
             FaceContour.LOWER_LIP_BOTTOM,
             FaceContour.NOSE_BRIDGE,
             FaceContour.NOSE_BOTTOM,
+            FaceContour.LEFT_CHEEK,
+            FaceContour.RIGHT_CHEEK,
         )
 
         val allPoints = mutableListOf<Double>()

@@ -23,7 +23,7 @@ class FaceResult {
   /// Null when [FaceConfig.detectLandmarks] is false.
   final List<Offset>? landmarks;
 
-  /// Face contour groups (face outline, eyes, lips, eyebrows, nose).
+  /// Face contour groups (face outline, eyes, lips, eyebrows, nose, cheeks).
   /// Each list is a connected sequence of points in image pixel coordinates.
   /// Null when [FaceConfig.detectContours] is false.
   final List<List<Offset>>? contours;

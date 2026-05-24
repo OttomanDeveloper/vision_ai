@@ -40,8 +40,8 @@ class FaceConfig {
   /// ears, cheeks). Lighter than contours and works WITH face tracking.
   final bool detectLandmarks;
 
-  /// Whether to detect face contours (133 points: face outline, eyes, lips,
-  /// eyebrows, nose). Enable this to draw a face mesh overlay.
+  /// Whether to detect face contours (face outline, eyes, lips,
+  /// eyebrows, nose, cheeks — all 15 ML Kit contour types).
   /// Note: contour mode and face tracking cannot be used together in ML Kit.
   /// When enabled, tracking is automatically disabled.
   final bool detectContours;
