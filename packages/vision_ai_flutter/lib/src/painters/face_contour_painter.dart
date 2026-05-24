@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:vision_ai/vision_ai.dart';
 
+// Contour points are pixel coordinates from ML Kit (same coordinate space as boundingBox),
+// packed by FaceDetectionProcessor into a flat array with per-contour size counts.
+// The method channel side reconstructs them into List<List<Offset>> before they reach here.
+// Each inner list is one contour region (face outline, eyebrow, eye, lip, nose) drawn as
+// an open polyline — ML Kit does not guarantee the contour is closed, so we don't close the path.
 class FaceContourPainter extends CustomPainter {
   final List<FaceResult> faces;
   final Size imageSize;

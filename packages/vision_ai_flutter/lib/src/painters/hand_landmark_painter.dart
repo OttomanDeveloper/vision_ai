@@ -3,6 +3,11 @@ import 'package:vision_ai/vision_ai.dart';
 
 import '../styles/overlay_style.dart';
 
+// Hand landmarks are normalized [0,1] in the camera frame. The Texture widget stretches to fill
+// its box with no letterboxing, so we map directly to canvas size without aspect-ratio correction.
+// If the preview is letterboxed in the future, _toCanvas will need to account for the offset.
+// Mirror flag should match the camera facing: front camera output is already mirrored on Android
+// so set mirrorLandmarks=true only when the Texture itself is NOT flipped.
 class HandLandmarkPainter extends CustomPainter {
   final List<HandResult> hands;
   final LandmarkStyle style;

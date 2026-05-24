@@ -11,6 +11,10 @@ import java.nio.ByteBuffer
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
+// Model input shape is read at runtime so we can swap in a different .tflite asset without
+// code changes (e.g. a 64x64 RGB model vs the default 48x48 grayscale FER2013 model).
+// Label order assumes FER2013 convention; if a replacement model uses a different label order
+// the debug logging (every 60 frames) will make mismatches obvious during testing.
 class EmotionClassifier(private val context: Context) {
 
     private var interpreter: Interpreter? = null

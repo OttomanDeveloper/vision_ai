@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:vision_ai/vision_ai.dart';
 
+// Bounding box coordinates are in pixels relative to the camera frame (imageSize),
+// not normalized. ML Kit returns absolute pixel values, so we scale to canvas size here.
+// imageSize comes from VisionResult and changes if the camera resolution changes mid-session.
 class FaceOverlayPainter extends CustomPainter {
   final List<FaceResult> faces;
   final Color boxColor;

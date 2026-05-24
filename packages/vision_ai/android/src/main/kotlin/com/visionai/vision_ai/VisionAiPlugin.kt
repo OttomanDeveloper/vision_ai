@@ -23,6 +23,11 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.view.TextureRegistry
 import java.util.concurrent.Executors
 
+// Single plugin entry point for both method calls (commands) and event channel (results).
+// Threading model: all ML work runs on analysisExecutor (single background thread);
+// results are posted back to mainHandler before reaching the Flutter event sink.
+// analysisExecutor is a singleton for the plugin lifetime — processors are closed on it
+// to avoid racing with in-flight inference when stopCamera/dispose is called.
 class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private lateinit var commandChannel: MethodChannel
@@ -30,8 +35,8 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var textureRegistry: TextureRegistry? = null
 
     private val resultStreamHandler = ResultStreamHandler()
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private val analysisExecutor = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper()) // posts results to UI thread for EventSink
+    private val analysisExecutor = Executors.newSingleThreadExecutor() // single thread keeps MediaPipe/ML Kit calls sequential
 
     private var cameraManager: CameraManager? = null
     private var frameProcessor: FrameProcessor? = null
@@ -77,10 +82,10 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
 
-        val facing = call.argument<Int>("cameraFacing") ?: 0
-        val resolution = call.argument<Int>("resolution") ?: 1
+        val facing = call.argument<Int>("cameraFacing") ?: 0   // 0=front, 1=back (matches CameraFacing.index)
+        val resolution = call.argument<Int>("resolution") ?: 1 // maps to AnalysisResolution.index: 0=low,1=med,2=high
         val enableHand = call.argument<Boolean>("enableHand") ?: false
-        val isFrontCamera = facing == 0
+        val isFrontCamera = facing == 0 // passed to FrameProcessor to control mirror during rotation
 
         try {
             if (enableHand) {
@@ -128,7 +133,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
 
-        val maxResults = call.argument<Int>("maxResultsPerSecond") ?: 0
+        val maxResults = call.argument<Int>("maxResultsPerSecond") ?: 0 // 0 = no throttle, pass every frame
         resultAggregator = ResultAggregator(mainHandler, { resultStreamHandler.eventSink }, maxResults)
         frameProcessor = FrameProcessor(
             resultAggregator = resultAggregator!!,

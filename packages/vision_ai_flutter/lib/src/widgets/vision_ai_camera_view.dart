@@ -8,6 +8,10 @@ import '../styles/overlay_style.dart';
 import 'emotion_indicator.dart';
 import 'gesture_label.dart';
 
+// StreamBuilder drives all overlays from the same result stream so every layer stays in sync
+// with a single frame — no risk of hand landmarks being one frame ahead of face boxes.
+// overlayBuilder exists for callers who need full VisionResult access (e.g. custom UI, game logic)
+// without subclassing this widget or reimplementing the stream subscription themselves.
 class VisionAiCameraView extends StatelessWidget {
   final VisionAi controller;
   final int textureId;

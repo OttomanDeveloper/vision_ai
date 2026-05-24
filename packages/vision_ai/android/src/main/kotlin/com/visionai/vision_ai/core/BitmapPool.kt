@@ -8,6 +8,11 @@ import android.graphics.Rect
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
+// At 20+ FPS, creating a new Bitmap per frame saturates the GC — each 640x480 ARGB_8888 frame
+// is ~1.2 MB. This pool keeps one instance of each logical bitmap and reuses it if the
+// dimensions match, erasing it with eraseColor(0) rather than re-allocating.
+// Bitmaps must be released on the analysis thread (via FrameProcessor.release) before the
+// pool goes out of scope; recycling on a different thread while inference is running will crash.
 class BitmapPool {
 
     private var rawBitmap: Bitmap? = null

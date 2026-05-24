@@ -4,6 +4,9 @@ import android.os.Handler
 import android.os.SystemClock
 import io.flutter.plugin.common.EventChannel
 
+// EventChannel.EventSink.success() must be called on the main thread — that's why every emit
+// goes through mainHandler.post(). The throttle (minIntervalMs) is enforced on the analysis
+// thread before posting, so we never queue up redundant main-thread work at high frame rates.
 class ResultAggregator(
     private val mainHandler: Handler,
     private val eventSinkProvider: () -> EventChannel.EventSink?,

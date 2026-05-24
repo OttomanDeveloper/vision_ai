@@ -1,3 +1,6 @@
+// Standard Flutter plugin platform interface pattern. The token prevents third-party code from
+// subclassing VisionAiPlatform without going through the verified setter, which guards against
+// accidental or malicious platform swaps at runtime.
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'src/models/config.dart';

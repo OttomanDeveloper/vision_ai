@@ -6,6 +6,13 @@ On-device hand gesture recognition and facial emotion detection for Flutter. Run
 
 - **Hand Gesture Recognition** — 13 built-in gestures + unlimited custom gestures
 - **Facial Emotion Detection** — 7 universal emotions with confidence scores
+- **Face Contours** — 133-point face mesh (outline, eyes, lips, eyebrows, nose)
+- **Face Landmarks** — 10-point lightweight detection (works with tracking)
+- **Blink Detection** — detects eye blinks from open/close transitions
+- **Head Nod/Shake** — detects yes/no head gestures from Euler angle oscillations
+- **Face Distance** — estimates camera-to-face distance from bounding box geometry
+- **Emission Throttling** — configurable results/sec to balance smoothness vs CPU
+- **Bitmap Pooling** — reuses allocations to minimize GC pauses
 - **Real-time** — 20-30 FPS on modern Android devices
 - **On-device** — No server, no API keys, no internet required
 - **Combined** — Run hand + face detection simultaneously on the same camera feed
@@ -126,11 +133,71 @@ final vision = VisionAi.hand(
 VisionAiCameraView(
   controller: vision,
   textureId: textureId,
-  showHandLandmarks: true,   // Red dots + green lines
-  showFaceBoundingBox: true,  // Cyan rectangle
-  showGestureLabel: true,     // Gesture name overlay
-  showEmotionLabel: true,     // Emotion name overlay
+  showHandLandmarks: true,    // Red dots + green lines
+  showFaceBoundingBox: true,   // Cyan rectangle
+  showFaceContours: true,      // 133-point face mesh
+  showGestureLabel: true,      // Gesture name overlay
+  showEmotionLabel: true,      // Emotion name overlay
 )
+```
+
+### Blink detection
+
+```dart
+final blinkDetector = BlinkDetector();
+
+vision.results.listen((result) {
+  final face = result.primaryFace;
+  if (face != null) {
+    final blink = blinkDetector.update(face, result.timestampMs);
+    if (blink != null) {
+      print('Blinked: ${blink.eye}'); // left, right, or both
+    }
+  }
+});
+```
+
+### Head nod/shake detection
+
+```dart
+final headDetector = HeadGestureDetector();
+
+vision.results.listen((result) {
+  final face = result.primaryFace;
+  if (face != null) {
+    final gesture = headDetector.update(face, result.timestampMs);
+    if (gesture != null) {
+      print(gesture.gesture == HeadGesture.nod ? 'Yes!' : 'No!');
+    }
+  }
+});
+```
+
+### Face distance estimation
+
+```dart
+final distanceEstimator = FaceDistanceEstimator();
+
+vision.results.listen((result) {
+  final face = result.primaryFace;
+  if (face != null) {
+    final estimate = distanceEstimator.estimate(face, result.imageSize);
+    if (estimate != null) {
+      print('${estimate.distanceCm}cm (${estimate.zone.name})');
+    }
+  }
+});
+```
+
+### Emission throttling
+
+```dart
+// Limit to 10 results/sec to reduce main thread work.
+// Set 0 for no limit (smoothest landmark tracking).
+final vision = VisionAi(
+  hand: HandConfig(),
+  camera: CameraConfig(maxResultsPerSecond: 10),
+);
 ```
 
 ## Camera Preview

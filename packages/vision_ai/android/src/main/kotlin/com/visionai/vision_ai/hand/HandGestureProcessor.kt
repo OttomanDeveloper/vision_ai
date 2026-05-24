@@ -10,6 +10,11 @@ import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizer
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
 
+// MediaPipe GestureRecognizer runs in LIVE_STREAM mode: recognizeAsync() is non-blocking and
+// delivers results via the result listener on an internal MediaPipe thread. getLatestResult()
+// is called from the analysis thread each frame to pick up whatever arrived since the last call.
+// GPU delegate is attempted first; if the device doesn't support it (e.g. some emulators),
+// we silently fall back to CPU so initialization doesn't blow up in the caller's face.
 class HandGestureProcessor(private val context: Context) {
 
     private var gestureRecognizer: GestureRecognizer? = null

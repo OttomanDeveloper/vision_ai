@@ -3,6 +3,9 @@ package com.visionai.vision_ai.core
 import android.graphics.Bitmap
 import androidx.camera.core.ImageProxy
 
+// Assumes ImageProxy is in RGBA_8888 format (configured in CameraManager).
+// The row stride may include padding bytes beyond the declared width — rawWidth accounts for this
+// so copyPixelsFromBuffer reads the full buffer correctly before we crop via drawRotated.
 object ImageConverter {
 
     fun imageProxyToBitmap(imageProxy: ImageProxy, isFrontCamera: Boolean, pool: BitmapPool): Bitmap {

@@ -15,6 +15,11 @@ class NormalizedLandmark {
   String toString() => 'NormalizedLandmark($x, $y, $z)';
 }
 
+/// MediaPipe hand model produces exactly 21 landmarks per hand.
+/// The topology here mirrors the MediaPipe Hand landmark documentation:
+/// 0=wrist, 1-4=thumb (CMC→tip), 5-8=index, 9-12=middle, 13-16=ring, 17-20=pinky.
+/// The [connections] list drives skeleton rendering and must stay in sync with
+/// how the Kotlin side packs the flat DoubleArray (index * 3 = x, +1 = y, +2 = z).
 /// Indices and topology for the 21 hand landmark points.
 abstract class HandLandmarkIndex {
   static const int wrist = 0;

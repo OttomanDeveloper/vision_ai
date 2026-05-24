@@ -12,6 +12,13 @@ import com.visionai.vision_ai.core.FrameProcessor
 import io.flutter.view.TextureRegistry
 import java.util.concurrent.ExecutorService
 
+// We own the camera entirely on the native side so we can feed raw frames to ML processors
+// before Flutter ever sees them. The TextureRegistry entry gives Flutter a surface to render
+// the preview without going through a platform view.
+//
+// OUTPUT_IMAGE_FORMAT_RGBA_8888 is chosen because MediaPipe's BitmapImageBuilder and ML Kit's
+// InputImage.fromBitmap both expect ARGB_8888 bitmaps — using RGBA avoids a YUV→RGB conversion
+// step that would otherwise happen on every frame.
 class CameraManager(
     private val context: Context,
     private val textureRegistry: TextureRegistry,

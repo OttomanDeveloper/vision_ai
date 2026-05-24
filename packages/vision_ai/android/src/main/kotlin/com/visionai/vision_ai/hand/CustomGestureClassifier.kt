@@ -3,6 +3,12 @@ package com.visionai.vision_ai.hand
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 import kotlin.math.sqrt
 
+// Classification priority: ok → counting gestures → user-defined customs.
+// ok and counting gestures only fire when MediaPipe returns "None", so they fill gaps in the
+// built-in recognizer without conflicting with it.
+// Finger state convention: 1 = extended, 0 = closed, -1 = any (wildcard in custom configs).
+// Thumb extension is determined by X position (left vs right hand), not Y, because the thumb
+// extends sideways rather than upward.
 class CustomGestureClassifier(
     private val customGestures: List<CustomGestureConfig> = emptyList(),
 ) {

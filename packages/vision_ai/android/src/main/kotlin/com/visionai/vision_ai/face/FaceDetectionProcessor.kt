@@ -14,6 +14,11 @@ import com.google.mlkit.vision.face.FaceLandmark
 import com.google.android.gms.tasks.Tasks
 import com.visionai.vision_ai.core.BitmapPool
 
+// ML Kit limitation: contour mode and face tracking cannot be enabled simultaneously —
+// the SDK silently ignores tracking when contours are on, so we guard it explicitly.
+// Landmark mode produces 10 sparse points (eyes, nose, ears, cheeks, mouth corners);
+// contour mode gives per-region point sequences suitable for drawing face meshes.
+// Both sets use pixel coordinates relative to the input bitmap, not normalized [0,1].
 class FaceDetectionProcessor(private val context: Context) {
 
     private var faceDetector: FaceDetector? = null

@@ -1,3 +1,11 @@
+// Method channel serialization notes:
+// - All data flows over standard MethodChannel types (Map, List, num, bool).
+//   Float64List arrives from Kotlin DoubleArray and is consumed as-is; no copy needed.
+// - FingerState uses a 3-value int encoding on the native side: 1=extended, 0=closed, -1=any
+//   (wildcard for custom gesture configs). Dart's FingerState enum has no "any" concept so null
+//   maps to -1 when sending and is never received back.
+// - resultStream is cached so multiple listeners share one platform subscription.
+
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';

@@ -8,6 +8,10 @@ import androidx.camera.core.ImageProxy
 import com.visionai.vision_ai.face.FaceDetectionProcessor
 import com.visionai.vision_ai.hand.HandGestureProcessor
 
+// Must run on a single thread — both MediaPipe (LIVE_STREAM) and ML Kit (Tasks.await) are
+// called synchronously here. The ImageAnalysis backpressure strategy (STRATEGY_KEEP_ONLY_LATEST)
+// means the executor never queues more than one pending frame, so slow inference naturally
+// self-throttles rather than building up a backlog.
 class FrameProcessor(
     private val resultAggregator: ResultAggregator,
     private val handProcessor: HandGestureProcessor? = null,
