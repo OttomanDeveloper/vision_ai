@@ -770,71 +770,153 @@ class _SettingsSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const Text('DETECTION', style: _sectionStyle),
-            const SizedBox(height: 8),
-            _toggle('Hand Detection', s.enableHand,
-                (v) => settings.value = s.copyWith(enableHand: v)),
-            if (s.enableHand)
-              _toggle('Hand Motion Tracking', s.enableHandMotion,
-                  (v) => settings.value = s.copyWith(enableHandMotion: v)),
-            if (s.enableHand)
-              _toggle(
-                  'Two-Hand Interaction',
-                  s.enableTwoHandInteraction,
-                  (v) => settings.value =
-                      s.copyWith(enableTwoHandInteraction: v)),
-            _toggle('Face Detection', s.enableFace,
-                (v) => settings.value = s.copyWith(enableFace: v)),
-            if (s.enableFace)
-              _toggle('Emotion Classification', s.detectEmotion,
-                  (v) => settings.value = s.copyWith(detectEmotion: v)),
-            if (s.enableFace)
-              _toggle('Face Tracking', s.enableFaceTracking,
-                  (v) => settings.value = s.copyWith(enableFaceTracking: v)),
-            if (s.enableFace)
-              _toggle('Face Landmarks (10 points)', s.detectLandmarks,
-                  (v) => settings.value = s.copyWith(detectLandmarks: v)),
-            if (s.enableFace)
-              _toggle(
-                  'Face Contours (disables tracking)',
-                  s.detectContours,
-                  (v) => settings.value = s.copyWith(detectContours: v)),
-            if (s.enableFace)
-              _toggle('Blink Detection', s.enableBlinkDetection,
-                  (v) => settings.value = s.copyWith(enableBlinkDetection: v)),
-            if (s.enableFace)
-              _toggle('Head Nod/Shake Detection', s.enableHeadGesture,
-                  (v) => settings.value = s.copyWith(enableHeadGesture: v)),
-            if (s.enableFace)
-              _toggle('Face Distance Estimation', s.enableFaceDistance,
-                  (v) => settings.value = s.copyWith(enableFaceDistance: v)),
-            if (s.enableFace)
-              _toggle('Attention Scoring', s.enableAttentionScore,
-                  (v) => settings.value = s.copyWith(enableAttentionScore: v)),
-            const Divider(height: 32),
-            const Text('CAMERA', style: _sectionStyle),
-            const SizedBox(height: 8),
-            _segmented<CameraFacing>(
-              'Camera',
-              {CameraFacing.front: 'Front', CameraFacing.back: 'Back'},
-              s.cameraFacing,
-              (v) => settings.value = s.copyWith(cameraFacing: v),
-            ),
-            const SizedBox(height: 12),
-            _segmented<AnalysisResolution>(
-              'Resolution',
-              {
-                AnalysisResolution.low: 'Low',
-                AnalysisResolution.medium: 'Medium',
-                AnalysisResolution.high: 'High',
-              },
-              s.resolution,
-              (v) => settings.value = s.copyWith(resolution: v),
-            ),
-            const SizedBox(height: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+            // --- Hand Detection ---
+            _card(
+              title: 'HAND DETECTION',
+              icon: Icons.back_hand_outlined,
+              enabled: s.enableHand,
               children: [
+                _toggle('Enabled', s.enableHand, (v) {
+                  if (!v) {
+                    settings.value = s.copyWith(
+                      enableHand: false,
+                      enableHandMotion: false,
+                      enableTwoHandInteraction: false,
+                      enableGestureFilter: false,
+                      showHandLandmarks: false,
+                      showHandBoundingBox: false,
+                      showGestureLabel: false,
+                      showWorldCoords: false,
+                    );
+                  } else {
+                    settings.value = s.copyWith(
+                      enableHand: true,
+                      showHandLandmarks: true,
+                      showGestureLabel: true,
+                    );
+                  }
+                }),
+                if (s.enableHand) ...[
+                  _toggle('Motion Tracking', s.enableHandMotion,
+                      (v) => settings.value = s.copyWith(enableHandMotion: v)),
+                  _toggle(
+                      'Two-Hand Interaction',
+                      s.enableTwoHandInteraction,
+                      (v) => settings.value =
+                          s.copyWith(enableTwoHandInteraction: v)),
+                  const SizedBox(height: 8),
+                  _segmented<int>(
+                    'Max Hands',
+                    {1: '1', 2: '2'},
+                    s.maxHands,
+                    (v) => settings.value = s.copyWith(maxHands: v),
+                  ),
+                  const SizedBox(height: 8),
+                  _slider(
+                      'Detection Confidence',
+                      s.minDetectionConfidence,
+                      0.1,
+                      1.0,
+                      (v) => settings.value =
+                          s.copyWith(minDetectionConfidence: v)),
+                  _toggle(
+                      'Gesture Filter (deny fist/palm)',
+                      s.enableGestureFilter,
+                      (v) => settings.value =
+                          s.copyWith(enableGestureFilter: v)),
+                ],
+              ],
+            ),
+
+            // --- Face Detection ---
+            _card(
+              title: 'FACE DETECTION',
+              icon: Icons.face,
+              enabled: s.enableFace,
+              children: [
+                _toggle('Enabled', s.enableFace, (v) {
+                  if (!v) {
+                    settings.value = s.copyWith(
+                      enableFace: false,
+                      detectEmotion: false,
+                      detectLandmarks: false,
+                      detectContours: false,
+                      enableBlinkDetection: false,
+                      enableHeadGesture: false,
+                      enableFaceDistance: false,
+                      enableAttentionScore: false,
+                      enableFaceTracking: false,
+                      faceAccurateMode: false,
+                      showFaceBoundingBox: false,
+                      showFaceContours: false,
+                      showEmotionLabel: false,
+                    );
+                  } else {
+                    settings.value = s.copyWith(
+                      enableFace: true,
+                      detectEmotion: true,
+                      enableFaceTracking: true,
+                      showFaceBoundingBox: true,
+                      showEmotionLabel: true,
+                    );
+                  }
+                }),
+                if (s.enableFace) ...[
+                  _toggle('Emotion Classification', s.detectEmotion,
+                      (v) => settings.value = s.copyWith(detectEmotion: v)),
+                  _toggle('Face Tracking', s.enableFaceTracking,
+                      (v) => settings.value =
+                          s.copyWith(enableFaceTracking: v)),
+                  _toggle('Landmarks (10 points)', s.detectLandmarks,
+                      (v) => settings.value = s.copyWith(detectLandmarks: v)),
+                  _toggle('Contours (disables tracking)', s.detectContours,
+                      (v) => settings.value = s.copyWith(detectContours: v)),
+                  _toggle('Blink Detection', s.enableBlinkDetection,
+                      (v) => settings.value =
+                          s.copyWith(enableBlinkDetection: v)),
+                  _toggle('Head Nod/Shake', s.enableHeadGesture,
+                      (v) => settings.value =
+                          s.copyWith(enableHeadGesture: v)),
+                  _toggle('Distance Estimation', s.enableFaceDistance,
+                      (v) => settings.value =
+                          s.copyWith(enableFaceDistance: v)),
+                  _toggle('Attention Scoring', s.enableAttentionScore,
+                      (v) => settings.value =
+                          s.copyWith(enableAttentionScore: v)),
+                  const SizedBox(height: 8),
+                  _slider('Min Face Size', s.minFaceSize, 0.05, 0.5,
+                      (v) => settings.value = s.copyWith(minFaceSize: v)),
+                  _toggle('Accurate Mode (slower)', s.faceAccurateMode,
+                      (v) => settings.value =
+                          s.copyWith(faceAccurateMode: v)),
+                ],
+              ],
+            ),
+
+            // --- Camera ---
+            _card(
+              title: 'CAMERA',
+              icon: Icons.videocam_outlined,
+              children: [
+                _segmented<CameraFacing>(
+                  'Camera',
+                  {CameraFacing.front: 'Front', CameraFacing.back: 'Back'},
+                  s.cameraFacing,
+                  (v) => settings.value = s.copyWith(cameraFacing: v),
+                ),
+                const SizedBox(height: 12),
+                _segmented<AnalysisResolution>(
+                  'Resolution',
+                  {
+                    AnalysisResolution.low: 'Low',
+                    AnalysisResolution.medium: 'Medium',
+                    AnalysisResolution.high: 'High',
+                  },
+                  s.resolution,
+                  (v) => settings.value = s.copyWith(resolution: v),
+                ),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -844,7 +926,8 @@ class _SettingsSheet extends StatelessWidget {
                       s.maxResultsPerSecond == 0
                           ? 'No limit'
                           : '${s.maxResultsPerSecond}/sec',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                      style:
+                          TextStyle(color: Colors.grey[400], fontSize: 13),
                     ),
                   ],
                 ),
@@ -860,63 +943,116 @@ class _SettingsSheet extends StatelessWidget {
                   s.maxResultsPerSecond == 0
                       ? 'No throttle — smoothest landmark tracking'
                       : s.maxResultsPerSecond <= 5
-                          ? 'Labels only — choppy landmarks, lightest load'
+                          ? 'Labels only — lightest load'
                           : s.maxResultsPerSecond <= 15
-                              ? 'Balanced — smooth labels, slight landmark lag'
-                              : 'Near-full rate — minimal throttling',
+                              ? 'Balanced — smooth labels'
+                              : 'Near-full rate',
                   style: TextStyle(color: Colors.grey[600], fontSize: 11),
                 ),
               ],
             ),
-            const Divider(height: 32),
-            const Text('HAND CONFIG', style: _sectionStyle),
-            const SizedBox(height: 8),
-            _segmented<int>(
-              'Max Hands',
-              {1: '1', 2: '2'},
-              s.maxHands,
-              (v) => settings.value = s.copyWith(maxHands: v),
+
+            // --- Overlays ---
+            _card(
+              title: 'OVERLAYS',
+              icon: Icons.layers_outlined,
+              children: [
+                if (s.enableHand) ...[
+                  _toggle('Hand Landmarks', s.showHandLandmarks,
+                      (v) => settings.value =
+                          s.copyWith(showHandLandmarks: v)),
+                  _toggle('Hand Bounding Box', s.showHandBoundingBox,
+                      (v) => settings.value =
+                          s.copyWith(showHandBoundingBox: v)),
+                  _toggle('Gesture Label', s.showGestureLabel,
+                      (v) => settings.value =
+                          s.copyWith(showGestureLabel: v)),
+                  _toggle('World Coords (cm)', s.showWorldCoords,
+                      (v) => settings.value =
+                          s.copyWith(showWorldCoords: v)),
+                ],
+                if (s.enableFace) ...[
+                  _toggle('Face Bounding Box', s.showFaceBoundingBox,
+                      (v) => settings.value =
+                          s.copyWith(showFaceBoundingBox: v)),
+                  _toggle('Face Contours', s.showFaceContours,
+                      (v) => settings.value =
+                          s.copyWith(showFaceContours: v)),
+                  _toggle('Emotion Label', s.showEmotionLabel,
+                      (v) => settings.value =
+                          s.copyWith(showEmotionLabel: v)),
+                ],
+                if (!s.enableHand && !s.enableFace)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Enable hand or face detection to see overlay options.',
+                      style:
+                          TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ),
+                _toggle('Stats Overlay', s.showStats,
+                    (v) => settings.value = s.copyWith(showStats: v)),
+              ],
             ),
-            const SizedBox(height: 12),
-            _slider('Detection Confidence', s.minDetectionConfidence, 0.1, 1.0,
-                (v) => settings.value = s.copyWith(minDetectionConfidence: v)),
-            _toggle(
-                'Gesture Filter (deny fist/palm, high thresholds)',
-                s.enableGestureFilter,
-                (v) => settings.value = s.copyWith(enableGestureFilter: v)),
-            const Divider(height: 32),
-            const Text('FACE CONFIG', style: _sectionStyle),
+
             const SizedBox(height: 8),
-            _slider('Min Face Size', s.minFaceSize, 0.05, 0.5,
-                (v) => settings.value = s.copyWith(minFaceSize: v)),
-            _toggle('Accurate Mode (slower)', s.faceAccurateMode,
-                (v) => settings.value = s.copyWith(faceAccurateMode: v)),
-            const Divider(height: 32),
-            const Text('OVERLAYS', style: _sectionStyle),
-            const SizedBox(height: 8),
-            _toggle('Hand Landmarks', s.showHandLandmarks,
-                (v) => settings.value = s.copyWith(showHandLandmarks: v)),
-            _toggle('Hand Bounding Box', s.showHandBoundingBox,
-                (v) => settings.value = s.copyWith(showHandBoundingBox: v)),
-            _toggle('Face Bounding Box', s.showFaceBoundingBox,
-                (v) => settings.value = s.copyWith(showFaceBoundingBox: v)),
-            _toggle('Face Contours Overlay', s.showFaceContours,
-                (v) => settings.value = s.copyWith(showFaceContours: v)),
-            _toggle('Gesture Label', s.showGestureLabel,
-                (v) => settings.value = s.copyWith(showGestureLabel: v)),
-            _toggle('Emotion Label', s.showEmotionLabel,
-                (v) => settings.value = s.copyWith(showEmotionLabel: v)),
-            _toggle('Stats Overlay', s.showStats,
-                (v) => settings.value = s.copyWith(showStats: v)),
-            _toggle('World Coords (pinch/span cm)', s.showWorldCoords,
-                (v) => settings.value = s.copyWith(showWorldCoords: v)),
-            const SizedBox(height: 16),
             Text(
-              'Note: Detection and camera changes require Restart to take effect. '
+              'Detection and camera changes require Restart. '
               'Overlay toggles apply instantly.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _card({
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+    bool enabled = true,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Card(
+        color: Colors.grey[850],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: enabled ? Colors.grey[800] : Colors.grey[870],
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, size: 16, color: enabled ? Colors.white70 : Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: enabled ? Colors.grey[300] : Colors.grey[600],
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            ),
           ],
         ),
       ),
@@ -987,10 +1123,4 @@ class _SettingsSheet extends StatelessWidget {
         ],
       );
 
-  static const _sectionStyle = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-    color: Colors.grey,
-    letterSpacing: 1.2,
-  );
 }
