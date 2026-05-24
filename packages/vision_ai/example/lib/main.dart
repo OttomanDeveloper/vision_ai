@@ -58,12 +58,15 @@ class _CameraPageState extends State<CameraPage> {
   bool _enableBlinkDetection = false;
   bool _enableHeadGesture = false;
   bool _enableFaceDistance = false;
+  bool _enableAttentionScore = false;
   BlinkDetector? _blinkDetector;
   HeadGestureDetector? _headGestureDetector;
   FaceDistanceEstimator? _distanceEstimator;
+  AttentionScorer? _attentionScorer;
   BlinkEvent? _lastBlink;
   HeadGestureEvent? _lastHeadGesture;
   FaceDistanceEstimate? _lastDistance;
+  AttentionScore? _lastAttention;
   bool _showGestureLabel = true;
   bool _showEmotionLabel = true;
   bool _showStats = true;
@@ -145,6 +148,7 @@ class _CameraPageState extends State<CameraPage> {
       if (_enableBlinkDetection) _blinkDetector = BlinkDetector();
       if (_enableHeadGesture) _headGestureDetector = HeadGestureDetector();
       if (_enableFaceDistance) _distanceEstimator = FaceDistanceEstimator();
+      if (_enableAttentionScore) _attentionScorer = AttentionScorer();
       _resultSub = _vision!.results.listen((r) {
         if (!mounted) return;
         BlinkEvent? blink;
@@ -162,11 +166,16 @@ class _CameraPageState extends State<CameraPage> {
         if (_distanceEstimator != null && face != null) {
           dist = _distanceEstimator!.estimate(face, r.imageSize);
         }
+        AttentionScore? attention;
+        if (_attentionScorer != null && face != null) {
+          attention = _attentionScorer!.update(face, r.timestampMs);
+        }
         setState(() {
           _latestResult = r;
           if (blink != null) _lastBlink = blink;
           if (headGesture != null) _lastHeadGesture = headGesture;
           if (dist != null) _lastDistance = dist;
+          if (attention != null) _lastAttention = attention;
         });
       });
       setState(() {
@@ -192,12 +201,15 @@ class _CameraPageState extends State<CameraPage> {
     _headGestureDetector?.reset();
     _headGestureDetector = null;
     _distanceEstimator = null;
+    _attentionScorer?.reset();
+    _attentionScorer = null;
     setState(() {
       _textureId = null;
       _latestResult = null;
       _lastBlink = null;
       _lastHeadGesture = null;
       _lastDistance = null;
+      _lastAttention = null;
     });
   }
 
@@ -230,6 +242,7 @@ class _CameraPageState extends State<CameraPage> {
         enableBlinkDetection: _enableBlinkDetection,
         enableHeadGesture: _enableHeadGesture,
         enableFaceDistance: _enableFaceDistance,
+        enableAttentionScore: _enableAttentionScore,
         maxHands: _maxHands,
         minDetectionConfidence: _minDetectionConfidence,
         minFaceSize: _minFaceSize,
@@ -253,6 +266,7 @@ class _CameraPageState extends State<CameraPage> {
             _enableBlinkDetection = settings.enableBlinkDetection;
             _enableHeadGesture = settings.enableHeadGesture;
             _enableFaceDistance = settings.enableFaceDistance;
+            _enableAttentionScore = settings.enableAttentionScore;
             _maxHands = settings.maxHands;
             _minDetectionConfidence = settings.minDetectionConfidence;
             _minFaceSize = settings.minFaceSize;
@@ -307,7 +321,7 @@ class _CameraPageState extends State<CameraPage> {
                         Positioned(
                           bottom: 8,
                           right: 8,
-                          child: _StatsOverlay(result: result, lastBlink: _lastBlink, lastHeadGesture: _lastHeadGesture, lastDistance: _lastDistance),
+                          child: _StatsOverlay(result: result, lastBlink: _lastBlink, lastHeadGesture: _lastHeadGesture, lastDistance: _lastDistance, lastAttention: _lastAttention),
                         ),
                     ],
                   )
@@ -384,7 +398,8 @@ class _StatsOverlay extends StatelessWidget {
   final BlinkEvent? lastBlink;
   final HeadGestureEvent? lastHeadGesture;
   final FaceDistanceEstimate? lastDistance;
-  const _StatsOverlay({required this.result, this.lastBlink, this.lastHeadGesture, this.lastDistance});
+  final AttentionScore? lastAttention;
+  const _StatsOverlay({required this.result, this.lastBlink, this.lastHeadGesture, this.lastDistance, this.lastAttention});
 
   @override
   Widget build(BuildContext context) {
@@ -430,6 +445,12 @@ class _StatsOverlay extends StatelessWidget {
             _line('Head', lastHeadGesture!.gesture == HeadGesture.nod ? 'YES (nod)' : 'NO (shake)'),
           if (lastDistance != null)
             _line('Distance', '${lastDistance!.distanceCm.toStringAsFixed(0)}cm (${lastDistance!.zone.name})'),
+          if (lastAttention != null) ...[
+            _line('Attention', '${(lastAttention!.score * 100).toStringAsFixed(0)}% (${lastAttention!.level.name})'),
+            _line('  Eye', '${(lastAttention!.eyeScore * 100).toStringAsFixed(0)}%'),
+            _line('  Orient', '${(lastAttention!.orientationScore * 100).toStringAsFixed(0)}%'),
+            _line('  Stable', '${(lastAttention!.stabilityScore * 100).toStringAsFixed(0)}%'),
+          ],
         ],
       ),
     );
@@ -483,6 +504,7 @@ class _Settings {
   final bool enableBlinkDetection;
   final bool enableHeadGesture;
   final bool enableFaceDistance;
+  final bool enableAttentionScore;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
@@ -502,6 +524,7 @@ class _Settings {
     required this.enableBlinkDetection,
     required this.enableHeadGesture,
     required this.enableFaceDistance,
+    required this.enableAttentionScore,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -530,6 +553,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool enableBlinkDetection;
   final bool enableHeadGesture;
   final bool enableFaceDistance;
+  final bool enableAttentionScore;
   final int maxHands;
   final double minDetectionConfidence;
   final double minFaceSize;
@@ -554,6 +578,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.enableBlinkDetection,
     required this.enableHeadGesture,
     required this.enableFaceDistance,
+    required this.enableAttentionScore,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -583,6 +608,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _blinkDetect = widget.enableBlinkDetection;
   late bool _headGesture = widget.enableHeadGesture;
   late bool _faceDistance = widget.enableFaceDistance;
+  late bool _attentionScore = widget.enableAttentionScore;
   late int _maxHands = widget.maxHands;
   late double _minDetConf = widget.minDetectionConfidence;
   late double _minFaceSize = widget.minFaceSize;
@@ -607,6 +633,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       enableBlinkDetection: _blinkDetect,
       enableHeadGesture: _headGesture,
       enableFaceDistance: _faceDistance,
+      enableAttentionScore: _attentionScore,
       maxHands: _maxHands,
       minDetectionConfidence: _minDetConf,
       minFaceSize: _minFaceSize,
@@ -687,6 +714,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           if (_enableFace)
             _toggle('Face Distance Estimation', _faceDistance, (v) {
               setState(() => _faceDistance = v);
+              _emit();
+            }),
+          if (_enableFace)
+            _toggle('Attention Scoring', _attentionScore, (v) {
+              setState(() => _attentionScore = v);
               _emit();
             }),
           const Divider(height: 32),

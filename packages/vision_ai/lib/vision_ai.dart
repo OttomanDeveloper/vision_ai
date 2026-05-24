@@ -3,6 +3,7 @@
 // Models: data classes for results, config, enums. Serialized across platform channel.
 // UI: separate package (vision_ai_flutter) with painters and overlay widgets.
 
+export 'src/attention_scorer.dart';
 export 'src/blink_detector.dart';
 export 'src/face_distance_estimator.dart';
 export 'src/head_gesture_detector.dart';
