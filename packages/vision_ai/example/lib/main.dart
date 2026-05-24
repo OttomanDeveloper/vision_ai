@@ -54,6 +54,9 @@ class _CameraPageState extends State<CameraPage> {
   bool _showHandLandmarks = true;
   bool _showFaceBoundingBox = true;
   bool _showFaceContours = false;
+  bool _enableBlinkDetection = false;
+  BlinkDetector? _blinkDetector;
+  BlinkEvent? _lastBlink;
   bool _showGestureLabel = true;
   bool _showEmotionLabel = true;
   bool _showStats = true;
@@ -131,8 +134,19 @@ class _CameraPageState extends State<CameraPage> {
       _vision?.dispose();
       _vision = _createVision();
       final textureId = await _vision!.start();
+      if (_enableBlinkDetection) {
+        _blinkDetector = BlinkDetector();
+      }
       _resultSub = _vision!.results.listen((r) {
-        if (mounted) setState(() => _latestResult = r);
+        if (!mounted) return;
+        BlinkEvent? blink;
+        if (_blinkDetector != null && r.primaryFace != null) {
+          blink = _blinkDetector!.update(r.primaryFace!, r.timestampMs);
+        }
+        setState(() {
+          _latestResult = r;
+          if (blink != null) _lastBlink = blink;
+        });
       });
       setState(() {
         _textureId = textureId;
@@ -152,9 +166,12 @@ class _CameraPageState extends State<CameraPage> {
     await _resultSub?.cancel();
     _resultSub = null;
     await _vision?.stop();
+    _blinkDetector?.reset();
+    _blinkDetector = null;
     setState(() {
       _textureId = null;
       _latestResult = null;
+      _lastBlink = null;
     });
   }
 
@@ -183,6 +200,7 @@ class _CameraPageState extends State<CameraPage> {
         enableFace: _enableFace,
         detectEmotion: _detectEmotion,
         detectContours: _detectContours,
+        enableBlinkDetection: _enableBlinkDetection,
         maxHands: _maxHands,
         minDetectionConfidence: _minDetectionConfidence,
         minFaceSize: _minFaceSize,
@@ -202,6 +220,7 @@ class _CameraPageState extends State<CameraPage> {
             _enableFace = settings.enableFace;
             _detectEmotion = settings.detectEmotion;
             _detectContours = settings.detectContours;
+            _enableBlinkDetection = settings.enableBlinkDetection;
             _maxHands = settings.maxHands;
             _minDetectionConfidence = settings.minDetectionConfidence;
             _minFaceSize = settings.minFaceSize;
@@ -256,7 +275,7 @@ class _CameraPageState extends State<CameraPage> {
                         Positioned(
                           bottom: 8,
                           right: 8,
-                          child: _StatsOverlay(result: result),
+                          child: _StatsOverlay(result: result, lastBlink: _lastBlink),
                         ),
                     ],
                   )
@@ -330,7 +349,8 @@ class _CameraPageState extends State<CameraPage> {
 // ---------------------------------------------------------------------------
 class _StatsOverlay extends StatelessWidget {
   final VisionResult result;
-  const _StatsOverlay({required this.result});
+  final BlinkEvent? lastBlink;
+  const _StatsOverlay({required this.result, this.lastBlink});
 
   @override
   Widget build(BuildContext context) {
@@ -370,6 +390,8 @@ class _StatsOverlay extends StatelessWidget {
             if (face.smilingProbability != null)
               _line('Smile', '${(face.smilingProbability! * 100).toStringAsFixed(0)}%'),
           ],
+          if (lastBlink != null)
+            _line('Blink', '${lastBlink!.eye.name} (${lastBlink!.durationMs}ms)'),
         ],
       ),
     );
@@ -419,6 +441,7 @@ class _Settings {
   final double minFaceSize;
   final bool enableFaceTracking;
   final bool detectContours;
+  final bool enableBlinkDetection;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
@@ -434,6 +457,7 @@ class _Settings {
     required this.enableFace,
     required this.detectEmotion,
     required this.detectContours,
+    required this.enableBlinkDetection,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -458,6 +482,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool enableFace;
   final bool detectEmotion;
   final bool detectContours;
+  final bool enableBlinkDetection;
   final int maxHands;
   final double minDetectionConfidence;
   final double minFaceSize;
@@ -478,6 +503,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.enableFace,
     required this.detectEmotion,
     required this.detectContours,
+    required this.enableBlinkDetection,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -503,6 +529,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _enableFace = widget.enableFace;
   late bool _detectEmotion = widget.detectEmotion;
   late bool _detectContours = widget.detectContours;
+  late bool _blinkDetect = widget.enableBlinkDetection;
   late int _maxHands = widget.maxHands;
   late double _minDetConf = widget.minDetectionConfidence;
   late double _minFaceSize = widget.minFaceSize;
@@ -523,6 +550,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       enableFace: _enableFace,
       detectEmotion: _detectEmotion,
       detectContours: _detectContours,
+      enableBlinkDetection: _blinkDetect,
       maxHands: _maxHands,
       minDetectionConfidence: _minDetConf,
       minFaceSize: _minFaceSize,
@@ -583,6 +611,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           if (_enableFace)
             _toggle('Face Contours (disables tracking)', _detectContours, (v) {
               setState(() => _detectContours = v);
+              _emit();
+            }),
+          if (_enableFace)
+            _toggle('Blink Detection', _blinkDetect, (v) {
+              setState(() => _blinkDetect = v);
               _emit();
             }),
           const Divider(height: 32),
