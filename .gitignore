@@ -46,6 +46,7 @@ coverage/
 
 # Design docs (local reference only)
 vision-ai-design.md
+vision-ai-ios-design.md
 
 # OS
 .DS_Store
