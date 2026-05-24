@@ -103,6 +103,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             val enableFace = call.argument<Boolean>("enableFace") ?: false
             if (enableFace) {
                 val faceDetectEmotion = call.argument<Boolean>("detectEmotion") ?: true
+                val faceDetectLandmarks = call.argument<Boolean>("detectLandmarks") ?: false
                 val faceDetectContours = call.argument<Boolean>("detectContours") ?: false
                 val faceMinSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
                 val faceEnableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
@@ -111,6 +112,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 faceProcessor = FaceDetectionProcessor(act)
                 faceProcessor!!.initialize(
                     detectEmotion = faceDetectEmotion,
+                    detectLandmarks = faceDetectLandmarks,
                     detectContours = faceDetectContours,
                     minFaceSize = faceMinSize,
                     enableTracking = faceEnableTracking,

@@ -57,6 +57,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
       },
       if (faceConfig != null) ...{
         'detectEmotion': faceConfig.detectEmotion,
+        'detectLandmarks': faceConfig.detectLandmarks,
         'detectContours': faceConfig.detectContours,
         'minFaceSize': faceConfig.minFaceSize,
         'enableFaceTracking': faceConfig.enableTracking,
@@ -198,8 +199,22 @@ class VisionAiMethodChannel extends VisionAiPlatform {
       rightEyeOpenProbability:
           (map['rightEyeOpenProbability'] as num?)?.toDouble(),
       trackingId: (map['trackingId'] as int?) ?? -1,
+      landmarks: _parseLandmarkPoints(map['landmarkPoints']),
       contours: _parseContours(map),
     );
+  }
+
+  static List<Offset>? _parseLandmarkPoints(dynamic raw) {
+    if (raw == null) return null;
+    final Float64List pts = raw is Float64List
+        ? raw
+        : Float64List.fromList(
+            (raw as List).map((e) => (e as num).toDouble()).toList());
+    final list = <Offset>[];
+    for (var i = 0; i < pts.length; i += 2) {
+      list.add(Offset(pts[i], pts[i + 1]));
+    }
+    return list;
   }
 
   static List<List<Offset>>? _parseContours(Map map) {

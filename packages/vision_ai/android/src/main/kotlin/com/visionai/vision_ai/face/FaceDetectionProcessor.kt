@@ -10,6 +10,7 @@ import com.google.mlkit.vision.face.FaceContour
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.FaceLandmark
 import com.google.android.gms.tasks.Tasks
 import com.visionai.vision_ai.core.BitmapPool
 
@@ -19,11 +20,13 @@ class FaceDetectionProcessor(private val context: Context) {
     private var emotionClassifier: EmotionClassifier? = null
     private var detectEmotion = true
     private var detectContours = false
+    private var detectLandmarks = false
     private var minEmotionConfidence = 0.4f
 
     fun initialize(
         detectEmotion: Boolean = true,
         detectContours: Boolean = false,
+        detectLandmarks: Boolean = false,
         minFaceSize: Float = 0.1f,
         enableTracking: Boolean = true,
         minEmotionConfidence: Float = 0.4f,
@@ -32,12 +35,17 @@ class FaceDetectionProcessor(private val context: Context) {
 
         this.detectEmotion = detectEmotion
         this.detectContours = detectContours
+        this.detectLandmarks = detectLandmarks
         this.minEmotionConfidence = minEmotionConfidence
 
         val optionsBuilder = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
             .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
             .setMinFaceSize(minFaceSize)
+
+        if (detectLandmarks) {
+            optionsBuilder.setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+        }
 
         if (detectContours) {
             optionsBuilder.setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
@@ -82,6 +90,12 @@ class FaceDetectionProcessor(private val context: Context) {
                 }
             }
 
+            // Extract 10 face landmarks if enabled
+            var landmarkPoints: DoubleArray? = null
+            if (detectLandmarks) {
+                landmarkPoints = extractLandmarks(face)
+            }
+
             // Extract contour points if enabled
             var contourPoints: DoubleArray? = null
             var contourSizes: IntArray? = null
@@ -104,6 +118,7 @@ class FaceDetectionProcessor(private val context: Context) {
                     leftEyeOpenProbability = face.leftEyeOpenProbability?.toDouble(),
                     rightEyeOpenProbability = face.rightEyeOpenProbability?.toDouble(),
                     trackingId = face.trackingId ?: -1,
+                    landmarkPoints = landmarkPoints,
                     contourPoints = contourPoints,
                     contourSizes = contourSizes,
                 )
@@ -111,6 +126,32 @@ class FaceDetectionProcessor(private val context: Context) {
         }
 
         return FaceProcessorResult(results)
+    }
+
+    // Extracts 10 face landmark positions as flat [x0,y0, x1,y1, ...] array.
+    // Order: leftEye, rightEye, noseBase, mouthLeft, mouthRight, mouthBottom,
+    //        leftEar, rightEar, leftCheek, rightCheek
+    // Missing landmarks (face turned away) get -1,-1.
+    private fun extractLandmarks(face: Face): DoubleArray {
+        val types = intArrayOf(
+            FaceLandmark.LEFT_EYE, FaceLandmark.RIGHT_EYE,
+            FaceLandmark.NOSE_BASE,
+            FaceLandmark.MOUTH_LEFT, FaceLandmark.MOUTH_RIGHT, FaceLandmark.MOUTH_BOTTOM,
+            FaceLandmark.LEFT_EAR, FaceLandmark.RIGHT_EAR,
+            FaceLandmark.LEFT_CHEEK, FaceLandmark.RIGHT_CHEEK,
+        )
+        val result = DoubleArray(types.size * 2)
+        for (i in types.indices) {
+            val lm = face.getLandmark(types[i])
+            if (lm != null) {
+                result[i * 2] = lm.position.x.toDouble()
+                result[i * 2 + 1] = lm.position.y.toDouble()
+            } else {
+                result[i * 2] = -1.0
+                result[i * 2 + 1] = -1.0
+            }
+        }
+        return result
     }
 
     // Extracts all contour points as a flat array + sizes per contour for reconstruction.
@@ -196,6 +237,7 @@ data class SingleFaceResult(
     val leftEyeOpenProbability: Double?,
     val rightEyeOpenProbability: Double?,
     val trackingId: Int,
+    val landmarkPoints: DoubleArray?,
     val contourPoints: DoubleArray?,
     val contourSizes: IntArray?,
 ) {
@@ -214,6 +256,7 @@ data class SingleFaceResult(
         "leftEyeOpenProbability" to leftEyeOpenProbability,
         "rightEyeOpenProbability" to rightEyeOpenProbability,
         "trackingId" to trackingId,
+        "landmarkPoints" to landmarkPoints,
         "contourPoints" to contourPoints,
         "contourSizes" to contourSizes?.toList(),
     )
