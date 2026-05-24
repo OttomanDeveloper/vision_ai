@@ -1,3 +1,22 @@
+## 0.1.1 - 2026-05-25
+
+### Fixes
+- Fixed release build crash caused by R8 code shrinking stripping MediaPipe's stack-walking classes — added ProGuard consumer rules
+- Fixed `updateFaceConfig` silently resetting `detectLandmarks` to false — now properly preserves the value
+- Fixed `onDetachedFromEngine` closing ML processors on the main thread instead of the analysis thread — prevents race condition crashes
+- Fixed `EmotionClassifier.loadModelFile()` leaking AssetFileDescriptor and FileInputStream — now uses Kotlin `.use {}` auto-close
+- Fixed missing `ON_CREATE` lifecycle event in `PluginLifecycleOwner` — prevents potential crashes on some AndroidX versions
+- Fixed missing `import Flutter` in iOS `HandGestureProcessor.swift` and `FaceDetectionProcessor.swift`
+- Removed dead code (`pixelBufferToSampleBuffer` always returning nil on iOS)
+
+### Improvements
+- Added comprehensive inline comments to all Kotlin, Swift, and Dart source files
+- Settings panel now uses grouped cards (Hand Detection, Face Detection, Camera, Overlays)
+- Disabling hand/face detection now hides related settings and resets sub-features
+- Updated README with detailed API documentation, use cases, and release build instructions
+- Added iOS setup instructions (NSCameraUsageDescription)
+- Added SVG media files for documentation (hand skeleton, face detection, architecture, feature banner)
+
 ## 0.1.0 - 2026-05-24
 
 ### Hand Detection
