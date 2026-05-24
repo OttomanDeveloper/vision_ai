@@ -21,6 +21,7 @@ dependencies:
     path: ../
   vision_ai_flutter:
     path: ../../vision_ai_flutter
+  permission_handler: ^11.4.0
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

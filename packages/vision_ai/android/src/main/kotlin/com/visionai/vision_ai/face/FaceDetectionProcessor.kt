@@ -10,6 +10,7 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.android.gms.tasks.Tasks
+import com.visionai.vision_ai.core.BitmapPool
 
 class FaceDetectionProcessor(private val context: Context) {
 
@@ -46,7 +47,7 @@ class FaceDetectionProcessor(private val context: Context) {
         }
     }
 
-    fun processFrame(bitmap: Bitmap, rotationDegrees: Int): FaceProcessorResult {
+    fun processFrame(bitmap: Bitmap, rotationDegrees: Int, pool: BitmapPool): FaceProcessorResult {
         val detector = faceDetector ?: return FaceProcessorResult.empty()
 
         val inputImage = InputImage.fromBitmap(bitmap, 0)
@@ -66,10 +67,9 @@ class FaceDetectionProcessor(private val context: Context) {
             var emotionResult = EmotionResult.none()
 
             if (detectEmotion && emotionClassifier != null) {
-                val croppedFace = cropFace(bitmap, face.boundingBox)
-                if (croppedFace != null) {
-                    emotionResult = emotionClassifier!!.classify(croppedFace)
-                    croppedFace.recycle()
+                val cropped = cropFace(bitmap, face.boundingBox, pool)
+                if (cropped != null) {
+                    emotionResult = emotionClassifier!!.classify(cropped, pool)
                 }
             }
 
@@ -93,8 +93,7 @@ class FaceDetectionProcessor(private val context: Context) {
         return FaceProcessorResult(results)
     }
 
-    private fun cropFace(bitmap: Bitmap, bbox: Rect): Bitmap? {
-        // Expand bounding box by 20% on each side
+    private fun cropFace(bitmap: Bitmap, bbox: Rect, pool: BitmapPool): Bitmap? {
         val padX = (bbox.width() * 0.2).toInt()
         val padY = (bbox.height() * 0.2).toInt()
 
@@ -109,7 +108,7 @@ class FaceDetectionProcessor(private val context: Context) {
         if (width <= 0 || height <= 0) return null
 
         return try {
-            Bitmap.createBitmap(bitmap, left, top, width, height)
+            pool.getCropBitmap(bitmap, left, top, width, height)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to crop face", e)
             null

@@ -1,46 +1,38 @@
 package com.visionai.vision_ai.core
 
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import androidx.camera.core.ImageProxy
 
 object ImageConverter {
 
-    fun imageProxyToBitmap(imageProxy: ImageProxy, isFrontCamera: Boolean): Bitmap {
+    fun imageProxyToBitmap(imageProxy: ImageProxy, isFrontCamera: Boolean, pool: BitmapPool): Bitmap {
         val buffer = imageProxy.planes[0].buffer
         val pixelStride = imageProxy.planes[0].pixelStride
         val rowStride = imageProxy.planes[0].rowStride
         val rowPadding = rowStride - pixelStride * imageProxy.width
 
-        val bitmap = Bitmap.createBitmap(
-            imageProxy.width + rowPadding / pixelStride,
-            imageProxy.height,
-            Bitmap.Config.ARGB_8888
-        )
+        val rawWidth = imageProxy.width + rowPadding / pixelStride
+        val rawHeight = imageProxy.height
+        val raw = pool.getRawBitmap(rawWidth, rawHeight)
         buffer.rewind()
-        bitmap.copyPixelsFromBuffer(buffer)
+        raw.copyPixelsFromBuffer(buffer)
 
-        val croppedBitmap = if (rowPadding > 0) {
-            Bitmap.createBitmap(bitmap, 0, 0, imageProxy.width, imageProxy.height)
-        } else {
-            bitmap
-        }
+        val srcWidth = imageProxy.width
+        val srcHeight = imageProxy.height
 
         val rotationDegrees = imageProxy.imageInfo.rotationDegrees
-        if (rotationDegrees == 0 && !isFrontCamera) return croppedBitmap
-
-        val matrix = Matrix()
-        if (rotationDegrees != 0) {
-            matrix.postRotate(rotationDegrees.toFloat())
-        }
-        if (isFrontCamera) {
-            matrix.postScale(-1f, 1f)
+        if (rotationDegrees == 0 && !isFrontCamera && rowPadding == 0) {
+            return raw
         }
 
-        return Bitmap.createBitmap(
-            croppedBitmap, 0, 0,
-            croppedBitmap.width, croppedBitmap.height,
-            matrix, true
-        )
+        // Use the pool's source region (handles padding crop + rotation + mirror in one pass)
+        val source = if (rowPadding > 0) {
+            // Need to use only the valid region; drawRotated handles this via srcWidth/srcHeight
+            raw
+        } else {
+            raw
+        }
+
+        return pool.drawRotated(source, srcWidth, srcHeight, rotationDegrees, isFrontCamera)
     }
 }

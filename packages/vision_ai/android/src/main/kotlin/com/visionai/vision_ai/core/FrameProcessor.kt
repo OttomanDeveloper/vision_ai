@@ -16,6 +16,7 @@ class FrameProcessor(
 ) : ImageAnalysis.Analyzer {
 
     private var frameCount = 0L
+    val bitmapPool = BitmapPool()
 
     override fun analyze(imageProxy: ImageProxy) {
         try {
@@ -27,20 +28,17 @@ class FrameProcessor(
                 Log.d(TAG, "Processed $frameCount frames")
             }
 
-            // Convert frame once, reuse for both processors
             var bitmap: Bitmap? = null
             if (handProcessor != null || faceProcessor != null) {
-                bitmap = ImageConverter.imageProxyToBitmap(imageProxy, isFrontCamera)
+                bitmap = ImageConverter.imageProxyToBitmap(imageProxy, isFrontCamera, bitmapPool)
             }
 
-            // Hand gesture detection (async via MediaPipe LIVE_STREAM)
             if (handProcessor != null && bitmap != null) {
                 handProcessor.processFrame(bitmap, timestamp)
             }
 
-            // Face emotion detection (sync via ML Kit)
             val faceResult = if (faceProcessor != null && bitmap != null) {
-                faceProcessor.processFrame(bitmap, imageProxy.imageInfo.rotationDegrees)
+                faceProcessor.processFrame(bitmap, imageProxy.imageInfo.rotationDegrees, bitmapPool)
             } else {
                 null
             }
@@ -73,6 +71,10 @@ class FrameProcessor(
         } finally {
             imageProxy.close()
         }
+    }
+
+    fun release() {
+        bitmapPool.release()
     }
 
     companion object {

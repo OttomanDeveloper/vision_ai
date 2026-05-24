@@ -168,11 +168,21 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private fun handleStopCamera(result: Result) {
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
-        cameraManager?.stop()
-        handProcessor?.close()
-        faceProcessor?.close()
+        cameraManager?.release()
+        val hp = handProcessor
+        val fp = faceProcessor
+        val pool = frameProcessor?.bitmapPool
+        cameraManager = null
+        frameProcessor = null
+        resultAggregator = null
         handProcessor = null
         faceProcessor = null
+        lifecycleOwner = null
+        analysisExecutor.execute {
+            hp?.close()
+            fp?.close()
+            pool?.release()
+        }
         result.success(null)
     }
 
@@ -240,14 +250,20 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private fun handleDispose(result: Result) {
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         cameraManager?.release()
-        handProcessor?.close()
-        faceProcessor?.close()
+        val hp = handProcessor
+        val fp = faceProcessor
+        val pool = frameProcessor?.bitmapPool
         cameraManager = null
         frameProcessor = null
         resultAggregator = null
         handProcessor = null
         faceProcessor = null
         lifecycleOwner = null
+        analysisExecutor.execute {
+            hp?.close()
+            fp?.close()
+            pool?.release()
+        }
         result.success(null)
     }
 

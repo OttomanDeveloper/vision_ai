@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:vision_ai/vision_ai.dart';
 import 'package:vision_ai_flutter/vision_ai_flutter.dart';
 
@@ -27,40 +30,105 @@ class CameraPage extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraPage> {
-  late final VisionAi _vision;
+  VisionAi? _vision;
   int? _textureId;
   bool _isStarting = false;
+  String? _permissionError;
+  VisionResult? _latestResult;
+  StreamSubscription<VisionResult>? _resultSub;
 
-  @override
-  void initState() {
-    super.initState();
-    _vision = VisionAi(
-      hand: HandConfig(
-        maxHands: 2,
-        customGestures: [
-          CustomGesture(
-            name: 'rock',
-            fingerStates: {
-              Finger.thumb: FingerState.closed,
-              Finger.indexFinger: FingerState.extended,
-              Finger.middle: FingerState.closed,
-              Finger.ring: FingerState.closed,
-              Finger.pinky: FingerState.extended,
-            },
-          ),
-        ],
+  // --- Tweakable settings ---
+  bool _enableHand = true;
+  bool _enableFace = true;
+  bool _detectEmotion = true;
+  int _maxHands = 2;
+  double _minDetectionConfidence = 0.5;
+  double _minFaceSize = 0.1;
+  bool _enableFaceTracking = true;
+  CameraFacing _cameraFacing = CameraFacing.front;
+  AnalysisResolution _resolution = AnalysisResolution.medium;
+
+  // --- Overlay toggles ---
+  bool _showHandLandmarks = true;
+  bool _showFaceBoundingBox = true;
+  bool _showGestureLabel = true;
+  bool _showEmotionLabel = true;
+  bool _showStats = true;
+
+  VisionAi _createVision() {
+    return VisionAi(
+      hand: _enableHand
+          ? HandConfig(
+              maxHands: _maxHands,
+              minDetectionConfidence: _minDetectionConfidence,
+              customGestures: [
+                CustomGesture(
+                  name: 'rock',
+                  fingerStates: {
+                    Finger.thumb: FingerState.closed,
+                    Finger.indexFinger: FingerState.extended,
+                    Finger.middle: FingerState.closed,
+                    Finger.ring: FingerState.closed,
+                    Finger.pinky: FingerState.extended,
+                  },
+                ),
+              ],
+            )
+          : null,
+      face: _enableFace
+          ? FaceConfig(
+              detectEmotion: _detectEmotion,
+              minFaceSize: _minFaceSize,
+              enableTracking: _enableFaceTracking,
+            )
+          : null,
+      camera: CameraConfig(
+        facing: _cameraFacing,
+        resolution: _resolution,
       ),
-      face: const FaceConfig(detectEmotion: true),
-      camera: const CameraConfig(facing: CameraFacing.front),
     );
   }
 
+  Future<bool> _requestCameraPermission() async {
+    final status = await Permission.camera.status;
+    if (status.isGranted) return true;
+    final result = await Permission.camera.request();
+    if (result.isGranted) return true;
+    if (result.isPermanentlyDenied) {
+      setState(() => _permissionError =
+          'Camera permission permanently denied. Enable in Settings.');
+    } else {
+      setState(() => _permissionError = 'Camera permission is required.');
+    }
+    return false;
+  }
+
   Future<void> _start() async {
-    if (_isStarting || _vision.isRunning) return;
-    setState(() => _isStarting = true);
+    if (_isStarting || (_vision?.isRunning ?? false)) return;
+    if (!_enableHand && !_enableFace) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enable at least hand or face detection')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isStarting = true;
+      _permissionError = null;
+    });
+
+    if (!await _requestCameraPermission()) {
+      setState(() => _isStarting = false);
+      return;
+    }
 
     try {
-      final textureId = await _vision.start();
+      _vision?.dispose();
+      _vision = _createVision();
+      final textureId = await _vision!.start();
+      _resultSub = _vision!.results.listen((r) {
+        if (mounted) setState(() => _latestResult = r);
+      });
       setState(() {
         _textureId = textureId;
         _isStarting = false;
@@ -76,108 +144,576 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _stop() async {
-    await _vision.stop();
-    setState(() => _textureId = null);
+    await _resultSub?.cancel();
+    _resultSub = null;
+    await _vision?.stop();
+    setState(() {
+      _textureId = null;
+      _latestResult = null;
+    });
+  }
+
+  Future<void> _restart() async {
+    await _stop();
+    await _start();
   }
 
   @override
   void dispose() {
-    _vision.dispose();
+    _resultSub?.cancel();
+    _vision?.dispose();
     super.dispose();
+  }
+
+  void _openSettings() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _SettingsSheet(
+        enableHand: _enableHand,
+        enableFace: _enableFace,
+        detectEmotion: _detectEmotion,
+        maxHands: _maxHands,
+        minDetectionConfidence: _minDetectionConfidence,
+        minFaceSize: _minFaceSize,
+        enableFaceTracking: _enableFaceTracking,
+        cameraFacing: _cameraFacing,
+        resolution: _resolution,
+        showHandLandmarks: _showHandLandmarks,
+        showFaceBoundingBox: _showFaceBoundingBox,
+        showGestureLabel: _showGestureLabel,
+        showEmotionLabel: _showEmotionLabel,
+        showStats: _showStats,
+        onChanged: (settings) {
+          setState(() {
+            _enableHand = settings.enableHand;
+            _enableFace = settings.enableFace;
+            _detectEmotion = settings.detectEmotion;
+            _maxHands = settings.maxHands;
+            _minDetectionConfidence = settings.minDetectionConfidence;
+            _minFaceSize = settings.minFaceSize;
+            _enableFaceTracking = settings.enableFaceTracking;
+            _cameraFacing = settings.cameraFacing;
+            _resolution = settings.resolution;
+            _showHandLandmarks = settings.showHandLandmarks;
+            _showFaceBoundingBox = settings.showFaceBoundingBox;
+            _showGestureLabel = settings.showGestureLabel;
+            _showEmotionLabel = settings.showEmotionLabel;
+            _showStats = settings.showStats;
+          });
+        },
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isRunning = _vision?.isRunning ?? false;
+    final result = _latestResult;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Vision AI')),
+      appBar: AppBar(
+        title: const Text('Vision AI'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _openSettings,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
             child: _textureId != null
-                ? VisionAiCameraView(
-                    controller: _vision,
-                    textureId: _textureId!,
-                    showHandLandmarks: true,
-                    showFaceBoundingBox: true,
-                    showGestureLabel: true,
-                    showEmotionLabel: true,
-                    style: const OverlayStyle(
-                      handLandmark: LandmarkStyle(
-                        dotColor: Colors.red,
-                        lineColor: Colors.green,
-                        dotRadius: 5.0,
-                        lineWidth: 3.0,
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      VisionAiCameraView(
+                        controller: _vision!,
+                        textureId: _textureId!,
+                        showHandLandmarks: _showHandLandmarks,
+                        showFaceBoundingBox: _showFaceBoundingBox,
+                        showGestureLabel: _showGestureLabel,
+                        showEmotionLabel: _showEmotionLabel,
                       ),
-                      gestureLabel: LabelStyle(
-                        fontSize: 28,
-                        backgroundColor: Colors.black87,
-                      ),
-                      emotionLabel: LabelStyle(
-                        fontSize: 22,
-                        backgroundColor: Colors.blueAccent,
-                      ),
-                    ),
-                    overlayBuilder: (context, result) {
-                      return Positioned(
-                        bottom: 60,
-                        right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${result.inferenceTimeMs}ms',
-                                style: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 11,
-                                ),
-                              ),
-                              Text(
-                                'Hands: ${result.hands.length} | Faces: ${result.faces.length}',
-                                style: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
+                      if (_showStats && result != null)
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: _StatsOverlay(result: result),
                         ),
-                      );
-                    },
+                    ],
                   )
-                : const Center(
-                    child: Text(
-                      'Tap Start to begin',
-                      style: TextStyle(fontSize: 16),
+                : Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.visibility, size: 64, color: Colors.grey[700]),
+                        const SizedBox(height: 16),
+                        const Text('Tap Start to begin',
+                            style: TextStyle(fontSize: 16)),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_enableHand ? "Hand" : ""}${_enableHand && _enableFace ? " + " : ""}${_enableFace ? "Face" : ""} detection',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                        ),
+                        if (_permissionError != null) ...[
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Text(
+                              _permissionError!,
+                              style: const TextStyle(
+                                  color: Colors.redAccent, fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => openAppSettings(),
+                            child: const Text('Open Settings'),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: (_vision.isRunning || _isStarting) ? null : _start,
-                  icon: const Icon(Icons.play_arrow),
-                  label: Text(_isStarting ? 'Starting...' : 'Start'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _vision.isRunning ? _stop : null,
-                  icon: const Icon(Icons.stop),
-                  label: const Text('Stop'),
-                ),
-              ],
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: (isRunning || _isStarting) ? null : _start,
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text(_isStarting ? 'Starting...' : 'Start'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: isRunning ? _stop : null,
+                    icon: const Icon(Icons.stop),
+                    label: const Text('Stop'),
+                  ),
+                  if (isRunning)
+                    ElevatedButton.icon(
+                      onPressed: _restart,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Restart'),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Stats overlay (bottom-right)
+// ---------------------------------------------------------------------------
+class _StatsOverlay extends StatelessWidget {
+  final VisionResult result;
+  const _StatsOverlay({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final hand = result.primaryHand;
+    final face = result.primaryFace;
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _line('Inference', '${result.inferenceTimeMs}ms'),
+          _line('Hands', '${result.hands.length}'),
+          _line('Faces', '${result.faces.length}'),
+          if (hand != null) ...[
+            _line('Gesture', _gestureName(hand.gesture)),
+            _line('Confidence', '${(hand.gestureConfidence * 100).toStringAsFixed(0)}%'),
+            _line('Side', hand.isLeftHand ? 'Left' : 'Right'),
+            _line(
+              'Fingers',
+              [
+                hand.fingerStates[Finger.thumb] == FingerState.extended ? 'T' : '',
+                hand.fingerStates[Finger.indexFinger] == FingerState.extended ? 'I' : '',
+                hand.fingerStates[Finger.middle] == FingerState.extended ? 'M' : '',
+                hand.fingerStates[Finger.ring] == FingerState.extended ? 'R' : '',
+                hand.fingerStates[Finger.pinky] == FingerState.extended ? 'P' : '',
+              ].where((s) => s.isNotEmpty).join(''),
+            ),
+          ],
+          if (face != null && face.emotion.isRecognized) ...[
+            _line('Emotion', face.emotion.name),
+            _line('Emotion %', '${(face.emotionConfidence * 100).toStringAsFixed(0)}%'),
+            if (face.smilingProbability != null)
+              _line('Smile', '${(face.smilingProbability! * 100).toStringAsFixed(0)}%'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _line(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('$label: ',
+                style: TextStyle(color: Colors.grey[500], fontSize: 10)),
+            Text(value,
+                style: const TextStyle(color: Colors.white, fontSize: 10)),
+          ],
+        ),
+      );
+
+  String _gestureName(Gesture g) => switch (g) {
+        Gesture.fist => 'Fist',
+        Gesture.openHand => 'Open',
+        Gesture.peace => 'Peace',
+        Gesture.thumbsUp => 'ThumbUp',
+        Gesture.thumbsDown => 'ThumbDn',
+        Gesture.pointingUp => 'Point',
+        Gesture.ok => 'OK',
+        Gesture.iLoveYou => 'ILY',
+        Gesture.one => '1',
+        Gesture.two => '2',
+        Gesture.three => '3',
+        Gesture.four => '4',
+        Gesture.five => '5',
+        Gesture.custom => 'Custom',
+        Gesture.none => '-',
+      };
+}
+
+// ---------------------------------------------------------------------------
+// Settings data class
+// ---------------------------------------------------------------------------
+class _Settings {
+  final bool enableHand;
+  final bool enableFace;
+  final bool detectEmotion;
+  final int maxHands;
+  final double minDetectionConfidence;
+  final double minFaceSize;
+  final bool enableFaceTracking;
+  final CameraFacing cameraFacing;
+  final AnalysisResolution resolution;
+  final bool showHandLandmarks;
+  final bool showFaceBoundingBox;
+  final bool showGestureLabel;
+  final bool showEmotionLabel;
+  final bool showStats;
+
+  const _Settings({
+    required this.enableHand,
+    required this.enableFace,
+    required this.detectEmotion,
+    required this.maxHands,
+    required this.minDetectionConfidence,
+    required this.minFaceSize,
+    required this.enableFaceTracking,
+    required this.cameraFacing,
+    required this.resolution,
+    required this.showHandLandmarks,
+    required this.showFaceBoundingBox,
+    required this.showGestureLabel,
+    required this.showEmotionLabel,
+    required this.showStats,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Settings bottom sheet
+// ---------------------------------------------------------------------------
+class _SettingsSheet extends StatefulWidget {
+  final bool enableHand;
+  final bool enableFace;
+  final bool detectEmotion;
+  final int maxHands;
+  final double minDetectionConfidence;
+  final double minFaceSize;
+  final bool enableFaceTracking;
+  final CameraFacing cameraFacing;
+  final AnalysisResolution resolution;
+  final bool showHandLandmarks;
+  final bool showFaceBoundingBox;
+  final bool showGestureLabel;
+  final bool showEmotionLabel;
+  final bool showStats;
+  final ValueChanged<_Settings> onChanged;
+
+  const _SettingsSheet({
+    required this.enableHand,
+    required this.enableFace,
+    required this.detectEmotion,
+    required this.maxHands,
+    required this.minDetectionConfidence,
+    required this.minFaceSize,
+    required this.enableFaceTracking,
+    required this.cameraFacing,
+    required this.resolution,
+    required this.showHandLandmarks,
+    required this.showFaceBoundingBox,
+    required this.showGestureLabel,
+    required this.showEmotionLabel,
+    required this.showStats,
+    required this.onChanged,
+  });
+
+  @override
+  State<_SettingsSheet> createState() => _SettingsSheetState();
+}
+
+class _SettingsSheetState extends State<_SettingsSheet> {
+  late bool _enableHand = widget.enableHand;
+  late bool _enableFace = widget.enableFace;
+  late bool _detectEmotion = widget.detectEmotion;
+  late int _maxHands = widget.maxHands;
+  late double _minDetConf = widget.minDetectionConfidence;
+  late double _minFaceSize = widget.minFaceSize;
+  late bool _faceTracking = widget.enableFaceTracking;
+  late CameraFacing _facing = widget.cameraFacing;
+  late AnalysisResolution _res = widget.resolution;
+  late bool _showLandmarks = widget.showHandLandmarks;
+  late bool _showFaceBox = widget.showFaceBoundingBox;
+  late bool _showGesture = widget.showGestureLabel;
+  late bool _showEmotion = widget.showEmotionLabel;
+  late bool _showStats = widget.showStats;
+
+  void _emit() {
+    widget.onChanged(_Settings(
+      enableHand: _enableHand,
+      enableFace: _enableFace,
+      detectEmotion: _detectEmotion,
+      maxHands: _maxHands,
+      minDetectionConfidence: _minDetConf,
+      minFaceSize: _minFaceSize,
+      enableFaceTracking: _faceTracking,
+      cameraFacing: _facing,
+      resolution: _res,
+      showHandLandmarks: _showLandmarks,
+      showFaceBoundingBox: _showFaceBox,
+      showGestureLabel: _showGesture,
+      showEmotionLabel: _showEmotion,
+      showStats: _showStats,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (_, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.all(16),
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[600],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const Text('DETECTION', style: _sectionStyle),
+          const SizedBox(height: 8),
+          _toggle('Hand Detection', _enableHand, (v) {
+            setState(() => _enableHand = v);
+            _emit();
+          }),
+          _toggle('Face Detection', _enableFace, (v) {
+            setState(() => _enableFace = v);
+            _emit();
+          }),
+          if (_enableFace)
+            _toggle('Emotion Classification', _detectEmotion, (v) {
+              setState(() => _detectEmotion = v);
+              _emit();
+            }),
+          if (_enableFace)
+            _toggle('Face Tracking', _faceTracking, (v) {
+              setState(() => _faceTracking = v);
+              _emit();
+            }),
+          const Divider(height: 32),
+          const Text('CAMERA', style: _sectionStyle),
+          const SizedBox(height: 8),
+          _segmented<CameraFacing>(
+            'Camera',
+            {CameraFacing.front: 'Front', CameraFacing.back: 'Back'},
+            _facing,
+            (v) {
+              setState(() => _facing = v);
+              _emit();
+            },
+          ),
+          const SizedBox(height: 12),
+          _segmented<AnalysisResolution>(
+            'Resolution',
+            {
+              AnalysisResolution.low: 'Low',
+              AnalysisResolution.medium: 'Medium',
+              AnalysisResolution.high: 'High',
+            },
+            _res,
+            (v) {
+              setState(() => _res = v);
+              _emit();
+            },
+          ),
+          const Divider(height: 32),
+          const Text('HAND CONFIG', style: _sectionStyle),
+          const SizedBox(height: 8),
+          _segmented<int>(
+            'Max Hands',
+            {1: '1', 2: '2'},
+            _maxHands,
+            (v) {
+              setState(() => _maxHands = v);
+              _emit();
+            },
+          ),
+          const SizedBox(height: 12),
+          _slider('Detection Confidence', _minDetConf, 0.1, 1.0, (v) {
+            setState(() => _minDetConf = v);
+            _emit();
+          }),
+          const Divider(height: 32),
+          const Text('FACE CONFIG', style: _sectionStyle),
+          const SizedBox(height: 8),
+          _slider('Min Face Size', _minFaceSize, 0.05, 0.5, (v) {
+            setState(() => _minFaceSize = v);
+            _emit();
+          }),
+          const Divider(height: 32),
+          const Text('OVERLAYS', style: _sectionStyle),
+          const SizedBox(height: 8),
+          _toggle('Hand Landmarks', _showLandmarks, (v) {
+            setState(() => _showLandmarks = v);
+            _emit();
+          }),
+          _toggle('Face Bounding Box', _showFaceBox, (v) {
+            setState(() => _showFaceBox = v);
+            _emit();
+          }),
+          _toggle('Gesture Label', _showGesture, (v) {
+            setState(() => _showGesture = v);
+            _emit();
+          }),
+          _toggle('Emotion Label', _showEmotion, (v) {
+            setState(() => _showEmotion = v);
+            _emit();
+          }),
+          _toggle('Stats Overlay', _showStats, (v) {
+            setState(() => _showStats = v);
+            _emit();
+          }),
+          const SizedBox(height: 16),
+          Text(
+            'Note: Detection and camera changes require Restart to take effect. '
+            'Overlay toggles apply instantly.',
+            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggle(String label, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(
+      title: Text(label, style: const TextStyle(fontSize: 14)),
+      value: value,
+      onChanged: onChanged,
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+    );
+  }
+
+  Widget _slider(
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 14)),
+            Text(value.toStringAsFixed(2),
+                style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+          ],
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: ((max - min) * 20).round(),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _segmented<T>(
+    String label,
+    Map<T, String> options,
+    T selected,
+    ValueChanged<T> onChanged,
+  ) {
+    return Row(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SegmentedButton<T>(
+                segments: options.entries
+                    .map((e) =>
+                        ButtonSegment(value: e.key, label: Text(e.value)))
+                    .toList(),
+                selected: {selected},
+                onSelectionChanged: (s) => onChanged(s.first),
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  textStyle: WidgetStatePropertyAll(
+                    const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static const _sectionStyle = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    color: Colors.grey,
+    letterSpacing: 1.2,
+  );
 }
