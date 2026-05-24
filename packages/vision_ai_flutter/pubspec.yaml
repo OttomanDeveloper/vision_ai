@@ -1,0 +1,20 @@
+name: vision_ai_flutter
+description: Pre-built Flutter UI overlay widgets for vision_ai — camera preview with hand landmark skeleton, face bounding boxes, gesture labels, and emotion indicators.
+version: 0.1.0
+homepage: https://github.com/OttomanDeveloper/vision_ai
+repository: https://github.com/OttomanDeveloper/vision_ai
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  vision_ai:
+    path: ../vision_ai
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

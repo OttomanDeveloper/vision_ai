@@ -1,8 +1,8 @@
 name: vision_ai
 description: On-device hand gesture recognition and facial emotion detection for Flutter. Runs at 25+ FPS with zero cloud dependencies.
 version: 0.1.0
-homepage: https://github.com/AneekRahman/vision_ai
-repository: https://github.com/AneekRahman/vision_ai
+homepage: https://github.com/OttomanDeveloper/vision_ai
+repository: https://github.com/OttomanDeveloper/vision_ai
 
 environment:
   sdk: ^3.6.0
