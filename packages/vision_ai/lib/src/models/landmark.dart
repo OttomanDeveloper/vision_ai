@@ -1,6 +1,9 @@
+import 'dart:math' as math;
 import 'dart:ui' show Offset;
 
-/// A 3D point in normalized image coordinates [0.0, 1.0].
+/// A 3D point in normalized image coordinates where x and y are in [0.0, 1.0]
+/// relative to the image dimensions. Z represents depth relative to the wrist
+/// (negative = closer to camera). Used for [HandResult.landmarks].
 class NormalizedLandmark {
   final double x;
   final double y;
@@ -8,11 +11,42 @@ class NormalizedLandmark {
 
   const NormalizedLandmark(this.x, this.y, this.z);
 
+  /// Convert to a 2D canvas point by scaling to pixel dimensions.
   Offset toOffset(double width, double height) =>
       Offset(x * width, y * height);
 
   @override
   String toString() => 'NormalizedLandmark($x, $y, $z)';
+}
+
+/// A 3D point in real-world coordinates where x, y, and z are in **meters**.
+/// Origin is the hand's geometric center. Used for [HandResult.worldLandmarks].
+///
+/// Unlike [NormalizedLandmark], these values are scale-accurate — the distance
+/// between two [WorldLandmark] points corresponds to a physical measurement.
+/// Use [distanceTo] to measure real distances (e.g., hand span, pinch gap).
+class WorldLandmark {
+  /// Horizontal position in meters (positive = right from hand center).
+  final double x;
+
+  /// Vertical position in meters (positive = up from hand center).
+  final double y;
+
+  /// Depth position in meters (positive = away from camera).
+  final double z;
+
+  const WorldLandmark(this.x, this.y, this.z);
+
+  /// Euclidean distance to another world landmark in meters.
+  double distanceTo(WorldLandmark other) {
+    final dx = x - other.x;
+    final dy = y - other.y;
+    final dz = z - other.z;
+    return math.sqrt(dx * dx + dy * dy + dz * dz);
+  }
+
+  @override
+  String toString() => 'WorldLandmark($x, $y, $z)';
 }
 
 /// MediaPipe hand model produces exactly 21 landmarks per hand.

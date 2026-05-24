@@ -60,6 +60,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _enableHeadGesture = false;
   bool _enableFaceDistance = false;
   bool _enableAttentionScore = false;
+  bool _showWorldCoords = false;
   BlinkDetector? _blinkDetector;
   HeadGestureDetector? _headGestureDetector;
   FaceDistanceEstimator? _distanceEstimator;
@@ -259,6 +260,7 @@ class _CameraPageState extends State<CameraPage> {
         showGestureLabel: _showGestureLabel,
         showEmotionLabel: _showEmotionLabel,
         showStats: _showStats,
+        showWorldCoords: _showWorldCoords,
         onChanged: (settings) {
           setState(() {
             _enableHand = settings.enableHand;
@@ -284,6 +286,7 @@ class _CameraPageState extends State<CameraPage> {
             _showGestureLabel = settings.showGestureLabel;
             _showEmotionLabel = settings.showEmotionLabel;
             _showStats = settings.showStats;
+            _showWorldCoords = settings.showWorldCoords;
           });
         },
       ),
@@ -325,7 +328,7 @@ class _CameraPageState extends State<CameraPage> {
                         Positioned(
                           bottom: 8,
                           right: 8,
-                          child: _StatsOverlay(result: result, lastBlink: _lastBlink, lastHeadGesture: _lastHeadGesture, lastDistance: _lastDistance, lastAttention: _lastAttention),
+                          child: _StatsOverlay(result: result, lastBlink: _lastBlink, lastHeadGesture: _lastHeadGesture, lastDistance: _lastDistance, lastAttention: _lastAttention, showWorldCoords: _showWorldCoords),
                         ),
                     ],
                   )
@@ -403,7 +406,8 @@ class _StatsOverlay extends StatelessWidget {
   final HeadGestureEvent? lastHeadGesture;
   final FaceDistanceEstimate? lastDistance;
   final AttentionScore? lastAttention;
-  const _StatsOverlay({required this.result, this.lastBlink, this.lastHeadGesture, this.lastDistance, this.lastAttention});
+  final bool showWorldCoords;
+  const _StatsOverlay({required this.result, this.lastBlink, this.lastHeadGesture, this.lastDistance, this.lastAttention, this.showWorldCoords = false});
 
   @override
   Widget build(BuildContext context) {
@@ -436,6 +440,10 @@ class _StatsOverlay extends StatelessWidget {
                 hand.fingerStates[Finger.pinky] == FingerState.extended ? 'P' : '',
               ].where((s) => s.isNotEmpty).join(''),
             ),
+            if (showWorldCoords && hand.worldLandmarks.length >= 21) ...[
+              _line('Pinch', '${(hand.worldLandmarks[HandLandmarkIndex.thumbTip].distanceTo(hand.worldLandmarks[HandLandmarkIndex.indexTip]) * 100).toStringAsFixed(1)}cm'),
+              _line('Span', '${(hand.worldLandmarks[HandLandmarkIndex.thumbTip].distanceTo(hand.worldLandmarks[HandLandmarkIndex.pinkyTip]) * 100).toStringAsFixed(1)}cm'),
+            ],
           ],
           if (face != null && face.emotion.isRecognized) ...[
             _line('Emotion', face.emotion.name),
@@ -519,6 +527,7 @@ class _Settings {
   final bool showGestureLabel;
   final bool showEmotionLabel;
   final bool showStats;
+  final bool showWorldCoords;
 
   const _Settings({
     required this.enableHand,
@@ -544,6 +553,7 @@ class _Settings {
     required this.showGestureLabel,
     required this.showEmotionLabel,
     required this.showStats,
+    required this.showWorldCoords,
   });
 }
 
@@ -574,6 +584,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool showGestureLabel;
   final bool showEmotionLabel;
   final bool showStats;
+  final bool showWorldCoords;
   final ValueChanged<_Settings> onChanged;
 
   const _SettingsSheet({
@@ -600,6 +611,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.showGestureLabel,
     required this.showEmotionLabel,
     required this.showStats,
+    required this.showWorldCoords,
     required this.onChanged,
   });
 
@@ -631,6 +643,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _showGesture = widget.showGestureLabel;
   late bool _showEmotion = widget.showEmotionLabel;
   late bool _showStats = widget.showStats;
+  late bool _showWorld = widget.showWorldCoords;
 
   void _emit() {
     widget.onChanged(_Settings(
@@ -657,6 +670,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       showGestureLabel: _showGesture,
       showEmotionLabel: _showEmotion,
       showStats: _showStats,
+      showWorldCoords: _showWorld,
     ));
   }
 
@@ -847,6 +861,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           }),
           _toggle('Stats Overlay', _showStats, (v) {
             setState(() => _showStats = v);
+            _emit();
+          }),
+          _toggle('World Coords (pinch/span cm)', _showWorld, (v) {
+            setState(() => _showWorld = v);
             _emit();
           }),
           const SizedBox(height: 16),

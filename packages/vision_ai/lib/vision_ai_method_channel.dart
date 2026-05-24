@@ -160,7 +160,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
       customGestureName: map['customGestureName'] as String?,
       gestureConfidence: (map['gestureConfidence'] as num).toDouble(),
       landmarks: _toLandmarks(landmarkData),
-      worldLandmarks: _toLandmarks(worldData),
+      worldLandmarks: _toWorldLandmarks(worldData),
       isLeftHand: map['isLeftHand'] as bool,
       handednessConfidence: (map['handednessConfidence'] as num).toDouble(),
       fingerStates: {
@@ -255,6 +255,14 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     final landmarks = <NormalizedLandmark>[];
     for (var i = 0; i < data.length; i += 3) {
       landmarks.add(NormalizedLandmark(data[i], data[i + 1], data[i + 2]));
+    }
+    return landmarks;
+  }
+
+  static List<WorldLandmark> _toWorldLandmarks(Float64List data) {
+    final landmarks = <WorldLandmark>[];
+    for (var i = 0; i < data.length; i += 3) {
+      landmarks.add(WorldLandmark(data[i], data[i + 1], data[i + 2]));
     }
     return landmarks;
   }
