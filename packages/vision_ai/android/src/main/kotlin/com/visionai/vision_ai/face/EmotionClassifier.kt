@@ -19,20 +19,17 @@ class EmotionClassifier(private val context: Context) {
     private var inputChannels = 1
     private var numClasses = 7
 
-    private val labelMap = arrayOf("happy", "sad", "surprised", "fearful", "angry", "disgusted", "neutral")
+    // FER2013 standard label order (most common for emotion models)
+    // Index: 0=Angry, 1=Disgust, 2=Fear, 3=Happy, 4=Sad, 5=Surprise, 6=Neutral
+    private val labelMap = arrayOf("angry", "disgusted", "fearful", "happy", "sad", "surprised", "neutral")
 
-    private val toDartIndex = intArrayOf(
-        3, // model[0]=happy    → dart[3]
-        4, // model[1]=sad      → dart[4]
-        5, // model[2]=surprised → dart[5]
-        2, // model[3]=fearful  → dart[2]
-        0, // model[4]=angry    → dart[0]
-        1, // model[5]=disgusted → dart[1]
-        6, // model[6]=neutral  → dart[6]
-    )
+    // Dart expects: angry(0), disgusted(1), fearful(2), happy(3), sad(4), surprised(5), neutral(6)
+    // FER2013 order matches Dart order exactly — no remapping needed
+    private val toDartIndex = intArrayOf(0, 1, 2, 3, 4, 5, 6)
 
     private val output = Array(1) { FloatArray(7) }
     private val dartScores = DoubleArray(7)
+    private var debugFrameCount = 0L
 
     fun initialize() {
         val modelBuffer = loadModelFile("emotion_classifier.tflite")
@@ -81,6 +78,15 @@ class EmotionClassifier(private val context: Context) {
         }
 
         val primaryEmotion = if (maxIdx < labelMap.size) labelMap[maxIdx] else "neutral"
+
+        // Debug: log raw probabilities every ~60 frames to verify label order
+        debugFrameCount++
+        if (debugFrameCount % 60 == 0L) {
+            val scores = probabilities.mapIndexed { i, v ->
+                "${labelMap.getOrElse(i) { "?" }}=${String.format("%.2f", v)}"
+            }.joinToString(", ")
+            Log.d(TAG, "Emotion scores: [$scores] → $primaryEmotion")
+        }
 
         dartScores.fill(0.0)
         for (i in probabilities.indices) {

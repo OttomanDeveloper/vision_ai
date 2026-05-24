@@ -50,6 +50,7 @@ class VisionAiCameraView extends StatelessWidget {
                   CustomPaint(
                     painter: HandLandmarkPainter(
                       hands: result.hands,
+                      imageSize: result.imageSize,
                       style: style.handLandmark,
                       mirrored: mirrorLandmarks,
                     ),

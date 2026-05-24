@@ -7,9 +7,11 @@ class HandLandmarkPainter extends CustomPainter {
   final List<HandResult> hands;
   final LandmarkStyle style;
   final bool mirrored;
+  final Size imageSize;
 
   HandLandmarkPainter({
     required this.hands,
+    required this.imageSize,
     this.style = const LandmarkStyle(),
     this.mirrored = false,
   });
@@ -31,7 +33,6 @@ class HandLandmarkPainter extends CustomPainter {
     for (final hand in hands) {
       if (hand.landmarks.isEmpty) continue;
 
-      // Draw connection lines
       for (final connection in HandLandmarkIndex.connections) {
         final from = connection[0];
         final to = connection[1];
@@ -44,7 +45,6 @@ class HandLandmarkPainter extends CustomPainter {
         canvas.drawLine(p1, p2, linePaint);
       }
 
-      // Draw landmark dots on top of lines
       for (final landmark in hand.landmarks) {
         final point = _toCanvas(landmark, size);
         canvas.drawCircle(point, style.dotRadius, dotPaint);
@@ -53,7 +53,11 @@ class HandLandmarkPainter extends CustomPainter {
   }
 
   Offset _toCanvas(NormalizedLandmark landmark, Size size) {
-    final x = mirrored ? (1.0 - landmark.x) * size.width : landmark.x * size.width;
+    // Landmarks are normalized [0,1]. Texture widget stretches to fill,
+    // so we map directly to canvas dimensions.
+    final x = mirrored
+        ? (1.0 - landmark.x) * size.width
+        : landmark.x * size.width;
     final y = landmark.y * size.height;
     return Offset(x, y);
   }
