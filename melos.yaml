@@ -1,0 +1,30 @@
+name: vision_ai_workspace
+
+packages:
+  - packages/**
+  - example
+
+command:
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  analyze:
+    run: melos exec -- dart analyze --fatal-infos
+    description: Run dart analyze in all packages
+
+  test:
+    run: melos exec -- flutter test
+    description: Run tests in all packages
+    packageFilters:
+      dirExists: test
+
+  format:
+    run: melos exec -- dart format --set-exit-if-changed .
+    description: Check formatting in all packages
+
+  generate:
+    run: melos exec -- dart run pigeon --input pigeons/vision_ai_api.dart
+    description: Run Pigeon code generation
+    packageFilters:
+      dirExists: pigeons

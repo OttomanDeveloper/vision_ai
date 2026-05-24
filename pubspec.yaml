@@ -1,0 +1,8 @@
+name: vision_ai_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+dev_dependencies:
+  melos: ^6.3.2
