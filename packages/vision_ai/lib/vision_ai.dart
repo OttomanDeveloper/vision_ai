@@ -6,6 +6,7 @@
 export 'src/attention_scorer.dart';
 export 'src/blink_detector.dart';
 export 'src/face_distance_estimator.dart';
+export 'src/hand_motion_tracker.dart';
 export 'src/head_gesture_detector.dart';
 export 'src/models/config.dart';
 export 'src/models/emotion.dart';
