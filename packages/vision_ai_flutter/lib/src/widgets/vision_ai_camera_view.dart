@@ -3,6 +3,7 @@ import 'package:vision_ai/vision_ai.dart';
 
 import '../painters/face_contour_painter.dart';
 import '../painters/face_overlay_painter.dart';
+import '../painters/hand_bounding_box_painter.dart';
 import '../painters/hand_landmark_painter.dart';
 import '../styles/overlay_style.dart';
 import 'emotion_indicator.dart';
@@ -16,6 +17,7 @@ class VisionAiCameraView extends StatelessWidget {
   final VisionAi controller;
   final int textureId;
   final bool showHandLandmarks;
+  final bool showHandBoundingBox;
   final bool showFaceBoundingBox;
   final bool showFaceContours;
   final bool showGestureLabel;
@@ -29,6 +31,7 @@ class VisionAiCameraView extends StatelessWidget {
     required this.controller,
     required this.textureId,
     this.showHandLandmarks = true,
+    this.showHandBoundingBox = false,
     this.showFaceBoundingBox = true,
     this.showFaceContours = false,
     this.showGestureLabel = true,
@@ -59,6 +62,15 @@ class VisionAiCameraView extends StatelessWidget {
                       hands: result.hands,
                       imageSize: result.imageSize,
                       style: style.handLandmark,
+                      mirrored: mirrorLandmarks,
+                    ),
+                  ),
+                if (showHandBoundingBox && result.hasHands)
+                  CustomPaint(
+                    painter: HandBoundingBoxPainter(
+                      hands: result.hands,
+                      boxColor: style.handBoundingBoxColor,
+                      boxWidth: style.handBoundingBoxWidth,
                       mirrored: mirrorLandmarks,
                     ),
                   ),

@@ -54,6 +54,7 @@ class _CameraPageState extends State<CameraPage> {
 
   // --- Overlay toggles ---
   bool _showHandLandmarks = true;
+  bool _showHandBoundingBox = false;
   bool _showFaceBoundingBox = true;
   bool _showFaceContours = false;
   bool _enableBlinkDetection = false;
@@ -255,6 +256,7 @@ class _CameraPageState extends State<CameraPage> {
         resolution: _resolution,
         maxResultsPerSecond: _maxResultsPerSecond,
         showHandLandmarks: _showHandLandmarks,
+        showHandBoundingBox: _showHandBoundingBox,
         showFaceBoundingBox: _showFaceBoundingBox,
         showFaceContours: _showFaceContours,
         showGestureLabel: _showGestureLabel,
@@ -281,6 +283,7 @@ class _CameraPageState extends State<CameraPage> {
             _resolution = settings.resolution;
             _maxResultsPerSecond = settings.maxResultsPerSecond;
             _showHandLandmarks = settings.showHandLandmarks;
+            _showHandBoundingBox = settings.showHandBoundingBox;
             _showFaceBoundingBox = settings.showFaceBoundingBox;
             _showFaceContours = settings.showFaceContours;
             _showGestureLabel = settings.showGestureLabel;
@@ -319,6 +322,7 @@ class _CameraPageState extends State<CameraPage> {
                         controller: _vision!,
                         textureId: _textureId!,
                         showHandLandmarks: _showHandLandmarks,
+                        showHandBoundingBox: _showHandBoundingBox,
                         showFaceBoundingBox: _showFaceBoundingBox,
                         showFaceContours: _showFaceContours,
                         showGestureLabel: _showGestureLabel,
@@ -522,6 +526,7 @@ class _Settings {
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
   final bool showHandLandmarks;
+  final bool showHandBoundingBox;
   final bool showFaceBoundingBox;
   final bool showFaceContours;
   final bool showGestureLabel;
@@ -548,6 +553,7 @@ class _Settings {
     required this.resolution,
     required this.maxResultsPerSecond,
     required this.showHandLandmarks,
+    required this.showHandBoundingBox,
     required this.showFaceBoundingBox,
     required this.showFaceContours,
     required this.showGestureLabel,
@@ -579,6 +585,7 @@ class _SettingsSheet extends StatefulWidget {
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
   final bool showHandLandmarks;
+  final bool showHandBoundingBox;
   final bool showFaceBoundingBox;
   final bool showFaceContours;
   final bool showGestureLabel;
@@ -606,6 +613,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.resolution,
     required this.maxResultsPerSecond,
     required this.showHandLandmarks,
+    required this.showHandBoundingBox,
     required this.showFaceBoundingBox,
     required this.showFaceContours,
     required this.showGestureLabel,
@@ -638,6 +646,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late AnalysisResolution _res = widget.resolution;
   late int _maxResults = widget.maxResultsPerSecond;
   late bool _showLandmarks = widget.showHandLandmarks;
+  late bool _showHandBox = widget.showHandBoundingBox;
   late bool _showContours = widget.showFaceContours;
   late bool _showFaceBox = widget.showFaceBoundingBox;
   late bool _showGesture = widget.showGestureLabel;
@@ -665,6 +674,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       resolution: _res,
       maxResultsPerSecond: _maxResults,
       showHandLandmarks: _showLandmarks,
+      showHandBoundingBox: _showHandBox,
       showFaceBoundingBox: _showFaceBox,
       showFaceContours: _showContours,
       showGestureLabel: _showGesture,
@@ -841,6 +851,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           const SizedBox(height: 8),
           _toggle('Hand Landmarks', _showLandmarks, (v) {
             setState(() => _showLandmarks = v);
+            _emit();
+          }),
+          _toggle('Hand Bounding Box', _showHandBox, (v) {
+            setState(() => _showHandBox = v);
             _emit();
           }),
           _toggle('Face Bounding Box', _showFaceBox, (v) {

@@ -1,3 +1,5 @@
+import 'dart:ui' show Rect;
+
 import 'finger_state.dart';
 import 'gesture.dart';
 import 'landmark.dart';
@@ -30,6 +32,24 @@ class HandResult {
     required this.handednessConfidence,
     required this.fingerStates,
   });
+
+  /// Bounding box in normalized [0.0, 1.0] coordinates, computed from the
+  /// min/max of all 21 landmarks. Returns null if landmarks are empty.
+  Rect? get boundingBox {
+    if (landmarks.isEmpty) return null;
+    var minX = landmarks[0].x;
+    var minY = landmarks[0].y;
+    var maxX = landmarks[0].x;
+    var maxY = landmarks[0].y;
+    for (var i = 1; i < landmarks.length; i++) {
+      final lm = landmarks[i];
+      if (lm.x < minX) minX = lm.x;
+      if (lm.y < minY) minY = lm.y;
+      if (lm.x > maxX) maxX = lm.x;
+      if (lm.y > maxY) maxY = lm.y;
+    }
+    return Rect.fromLTRB(minX, minY, maxX, maxY);
+  }
 
   @override
   String toString() =>

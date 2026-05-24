@@ -4,6 +4,8 @@ class OverlayStyle {
   final LandmarkStyle handLandmark;
   final LabelStyle gestureLabel;
   final LabelStyle emotionLabel;
+  final Color handBoundingBoxColor;
+  final double handBoundingBoxWidth;
   final Color faceBoundingBoxColor;
   final double faceBoundingBoxWidth;
   final bool showEmotionConfidence;
@@ -14,6 +16,8 @@ class OverlayStyle {
     this.emotionLabel = const LabelStyle(
       backgroundColor: Colors.blue,
     ),
+    this.handBoundingBoxColor = Colors.yellow,
+    this.handBoundingBoxWidth = 2.0,
     this.faceBoundingBoxColor = Colors.cyan,
     this.faceBoundingBoxWidth = 2.0,
     this.showEmotionConfidence = true,

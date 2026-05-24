@@ -1,3 +1,4 @@
+export 'src/painters/hand_bounding_box_painter.dart';
 export 'src/painters/hand_landmark_painter.dart';
 export 'src/painters/face_overlay_painter.dart';
 export 'src/painters/face_contour_painter.dart';
