@@ -1,4 +1,5 @@
 export 'src/blink_detector.dart';
+export 'src/head_gesture_detector.dart';
 export 'src/models/config.dart';
 export 'src/models/emotion.dart';
 export 'src/models/face_result.dart';

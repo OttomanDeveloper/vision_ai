@@ -55,8 +55,11 @@ class _CameraPageState extends State<CameraPage> {
   bool _showFaceBoundingBox = true;
   bool _showFaceContours = false;
   bool _enableBlinkDetection = false;
+  bool _enableHeadGesture = false;
   BlinkDetector? _blinkDetector;
+  HeadGestureDetector? _headGestureDetector;
   BlinkEvent? _lastBlink;
+  HeadGestureEvent? _lastHeadGesture;
   bool _showGestureLabel = true;
   bool _showEmotionLabel = true;
   bool _showStats = true;
@@ -134,18 +137,25 @@ class _CameraPageState extends State<CameraPage> {
       _vision?.dispose();
       _vision = _createVision();
       final textureId = await _vision!.start();
-      if (_enableBlinkDetection) {
-        _blinkDetector = BlinkDetector();
-      }
+      if (_enableBlinkDetection) _blinkDetector = BlinkDetector();
+      if (_enableHeadGesture) _headGestureDetector = HeadGestureDetector();
       _resultSub = _vision!.results.listen((r) {
         if (!mounted) return;
         BlinkEvent? blink;
-        if (_blinkDetector != null && r.primaryFace != null) {
-          blink = _blinkDetector!.update(r.primaryFace!, r.timestampMs);
+        HeadGestureEvent? headGesture;
+        final face = r.primaryFace;
+        if (face != null) {
+          if (_blinkDetector != null) {
+            blink = _blinkDetector!.update(face, r.timestampMs);
+          }
+          if (_headGestureDetector != null) {
+            headGesture = _headGestureDetector!.update(face, r.timestampMs);
+          }
         }
         setState(() {
           _latestResult = r;
           if (blink != null) _lastBlink = blink;
+          if (headGesture != null) _lastHeadGesture = headGesture;
         });
       });
       setState(() {
@@ -168,10 +178,13 @@ class _CameraPageState extends State<CameraPage> {
     await _vision?.stop();
     _blinkDetector?.reset();
     _blinkDetector = null;
+    _headGestureDetector?.reset();
+    _headGestureDetector = null;
     setState(() {
       _textureId = null;
       _latestResult = null;
       _lastBlink = null;
+      _lastHeadGesture = null;
     });
   }
 
@@ -201,6 +214,7 @@ class _CameraPageState extends State<CameraPage> {
         detectEmotion: _detectEmotion,
         detectContours: _detectContours,
         enableBlinkDetection: _enableBlinkDetection,
+        enableHeadGesture: _enableHeadGesture,
         maxHands: _maxHands,
         minDetectionConfidence: _minDetectionConfidence,
         minFaceSize: _minFaceSize,
@@ -221,6 +235,7 @@ class _CameraPageState extends State<CameraPage> {
             _detectEmotion = settings.detectEmotion;
             _detectContours = settings.detectContours;
             _enableBlinkDetection = settings.enableBlinkDetection;
+            _enableHeadGesture = settings.enableHeadGesture;
             _maxHands = settings.maxHands;
             _minDetectionConfidence = settings.minDetectionConfidence;
             _minFaceSize = settings.minFaceSize;
@@ -275,7 +290,7 @@ class _CameraPageState extends State<CameraPage> {
                         Positioned(
                           bottom: 8,
                           right: 8,
-                          child: _StatsOverlay(result: result, lastBlink: _lastBlink),
+                          child: _StatsOverlay(result: result, lastBlink: _lastBlink, lastHeadGesture: _lastHeadGesture),
                         ),
                     ],
                   )
@@ -350,7 +365,8 @@ class _CameraPageState extends State<CameraPage> {
 class _StatsOverlay extends StatelessWidget {
   final VisionResult result;
   final BlinkEvent? lastBlink;
-  const _StatsOverlay({required this.result, this.lastBlink});
+  final HeadGestureEvent? lastHeadGesture;
+  const _StatsOverlay({required this.result, this.lastBlink, this.lastHeadGesture});
 
   @override
   Widget build(BuildContext context) {
@@ -392,6 +408,8 @@ class _StatsOverlay extends StatelessWidget {
           ],
           if (lastBlink != null)
             _line('Blink', '${lastBlink!.eye.name} (${lastBlink!.durationMs}ms)'),
+          if (lastHeadGesture != null)
+            _line('Head', lastHeadGesture!.gesture == HeadGesture.nod ? 'YES (nod)' : 'NO (shake)'),
         ],
       ),
     );
@@ -442,6 +460,7 @@ class _Settings {
   final bool enableFaceTracking;
   final bool detectContours;
   final bool enableBlinkDetection;
+  final bool enableHeadGesture;
   final CameraFacing cameraFacing;
   final AnalysisResolution resolution;
   final int maxResultsPerSecond;
@@ -458,6 +477,7 @@ class _Settings {
     required this.detectEmotion,
     required this.detectContours,
     required this.enableBlinkDetection,
+    required this.enableHeadGesture,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -483,6 +503,7 @@ class _SettingsSheet extends StatefulWidget {
   final bool detectEmotion;
   final bool detectContours;
   final bool enableBlinkDetection;
+  final bool enableHeadGesture;
   final int maxHands;
   final double minDetectionConfidence;
   final double minFaceSize;
@@ -504,6 +525,7 @@ class _SettingsSheet extends StatefulWidget {
     required this.detectEmotion,
     required this.detectContours,
     required this.enableBlinkDetection,
+    required this.enableHeadGesture,
     required this.maxHands,
     required this.minDetectionConfidence,
     required this.minFaceSize,
@@ -530,6 +552,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   late bool _detectEmotion = widget.detectEmotion;
   late bool _detectContours = widget.detectContours;
   late bool _blinkDetect = widget.enableBlinkDetection;
+  late bool _headGesture = widget.enableHeadGesture;
   late int _maxHands = widget.maxHands;
   late double _minDetConf = widget.minDetectionConfidence;
   late double _minFaceSize = widget.minFaceSize;
@@ -551,6 +574,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       detectEmotion: _detectEmotion,
       detectContours: _detectContours,
       enableBlinkDetection: _blinkDetect,
+      enableHeadGesture: _headGesture,
       maxHands: _maxHands,
       minDetectionConfidence: _minDetConf,
       minFaceSize: _minFaceSize,
@@ -616,6 +640,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           if (_enableFace)
             _toggle('Blink Detection', _blinkDetect, (v) {
               setState(() => _blinkDetect = v);
+              _emit();
+            }),
+          if (_enableFace)
+            _toggle('Head Nod/Shake Detection', _headGesture, (v) {
+              setState(() => _headGesture = v);
               _emit();
             }),
           const Divider(height: 32),
