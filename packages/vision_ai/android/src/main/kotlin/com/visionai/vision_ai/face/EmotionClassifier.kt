@@ -143,13 +143,17 @@ class EmotionClassifier(private val context: Context) {
     // Uses memory-mapped file I/O so the OS can page-out the model when not in use, reducing RAM pressure
     private fun loadModelFile(filename: String): MappedByteBuffer {
         val assetFd = context.assets.openFd(filename)
-        val inputStream = FileInputStream(assetFd.fileDescriptor)
-        val fileChannel = inputStream.channel
-        return fileChannel.map(
-            FileChannel.MapMode.READ_ONLY,
-            assetFd.startOffset,   // byte offset within the APK asset bundle
-            assetFd.declaredLength // exact model size; avoids reading past the end of the file
-        )
+        return assetFd.use { fd ->
+            val inputStream = FileInputStream(fd.fileDescriptor)
+            inputStream.use { stream ->
+                val fileChannel = stream.channel
+                fileChannel.map(
+                    FileChannel.MapMode.READ_ONLY,
+                    fd.startOffset,
+                    fd.declaredLength
+                )
+            }
+        }
     }
 
     // Must be called on the analysis thread; interpreter.close() is not thread-safe

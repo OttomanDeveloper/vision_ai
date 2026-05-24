@@ -166,7 +166,8 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 resolution = resolution,
                 frameProcessor = frameProcessor!!,
             )
-            // Drive the lifecycle to RESUMED so CameraX starts delivering frames
+            // Drive the lifecycle from INITIALIZED → RESUMED so CameraX starts delivering frames
+            owner.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
             owner.handleLifecycleEvent(Lifecycle.Event.ON_START)
             owner.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
             result.success(textureId) // Flutter Texture widget uses this id to render the preview
@@ -252,6 +253,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
 
         val detectEmotion = call.argument<Boolean>("detectEmotion") ?: true
+        val detectLandmarks = call.argument<Boolean>("detectLandmarks") ?: false
         val detectContours = call.argument<Boolean>("detectContours") ?: false
         val minFaceSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
         val enableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
@@ -260,6 +262,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
         faceProcessor!!.initialize(
             detectEmotion = detectEmotion,
+            detectLandmarks = detectLandmarks,
             detectContours = detectContours,
             minFaceSize = minFaceSize,
             enableTracking = enableTracking,
@@ -334,9 +337,20 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         commandChannel.setMethodCallHandler(null)
         resultChannel.setStreamHandler(null)
         cameraManager?.release()
-        handProcessor?.close()
-        faceProcessor?.close()
-        analysisExecutor.shutdown() // does not cancel in-flight tasks, just stops accepting new ones
+        // Close on analysis thread to avoid racing with in-flight inference
+        val hp = handProcessor
+        val fp = faceProcessor
+        val pool = frameProcessor?.bitmapPool
+        handProcessor = null
+        faceProcessor = null
+        frameProcessor = null
+        cameraManager = null
+        analysisExecutor.execute {
+            hp?.close()
+            fp?.close()
+            pool?.release()
+        }
+        analysisExecutor.shutdown()
     }
 }
 

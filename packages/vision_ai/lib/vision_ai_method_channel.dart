@@ -115,6 +115,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
   Future<void> updateFaceConfig(FaceConfig config) =>
       _commandChannel.invokeMethod<void>('updateFaceConfig', {
         'detectEmotion': config.detectEmotion,
+        'detectLandmarks': config.detectLandmarks,
         'detectContours': config.detectContours,
         'minFaceSize': config.minFaceSize,
         'enableFaceTracking': config.enableTracking,
