@@ -2,6 +2,7 @@ import 'dart:ui' show Rect;
 
 import 'emotion.dart';
 
+/// Detection result for a single face with emotion classification.
 class FaceResult {
   final Emotion emotion;
   final Map<Emotion, double> emotionScores;

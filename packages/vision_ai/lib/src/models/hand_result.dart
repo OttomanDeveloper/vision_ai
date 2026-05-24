@@ -2,6 +2,7 @@ import 'finger_state.dart';
 import 'gesture.dart';
 import 'landmark.dart';
 
+/// Detection result for a single hand.
 class HandResult {
   final Gesture gesture;
   final String? customGestureName;

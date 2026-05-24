@@ -3,6 +3,7 @@ import 'dart:ui' show Size;
 import 'face_result.dart';
 import 'hand_result.dart';
 
+/// Combined detection results from a single camera frame.
 class VisionResult {
   final List<HandResult> hands;
   final List<FaceResult> faces;

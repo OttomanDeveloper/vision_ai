@@ -72,45 +72,56 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
 
+        if (cameraManager != null) {
+            result.error("ALREADY_RUNNING", "Camera is already running. Call stopCamera first.", null)
+            return
+        }
+
         val facing = call.argument<Int>("cameraFacing") ?: 0
         val resolution = call.argument<Int>("resolution") ?: 1
         val enableHand = call.argument<Boolean>("enableHand") ?: false
         val isFrontCamera = facing == 0
 
-        // Initialize hand processor if enabled
-        if (enableHand) {
-            val maxHands = call.argument<Int>("maxHands") ?: 2
-            val minDetection = call.argument<Double>("minDetectionConfidence")?.toFloat() ?: 0.5f
-            val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
-            val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
+        try {
+            if (enableHand) {
+                val maxHands = call.argument<Int>("maxHands") ?: 2
+                val minDetection = call.argument<Double>("minDetectionConfidence")?.toFloat() ?: 0.5f
+                val minPresence = call.argument<Double>("minPresenceConfidence")?.toFloat() ?: 0.5f
+                val minTracking = call.argument<Double>("minTrackingConfidence")?.toFloat() ?: 0.5f
+                val customGestureConfigs = parseCustomGestures(call)
 
-            val customGestureConfigs = parseCustomGestures(call)
+                handProcessor = HandGestureProcessor(act)
+                handProcessor!!.initialize(
+                    maxHands = maxHands,
+                    minDetectionConfidence = minDetection,
+                    minPresenceConfidence = minPresence,
+                    minTrackingConfidence = minTracking,
+                    customGestures = customGestureConfigs,
+                )
+            }
 
-            handProcessor = HandGestureProcessor(act)
-            handProcessor!!.initialize(
-                maxHands = maxHands,
-                minDetectionConfidence = minDetection,
-                minPresenceConfidence = minPresence,
-                minTrackingConfidence = minTracking,
-                customGestures = customGestureConfigs,
-            )
-        }
+            val enableFace = call.argument<Boolean>("enableFace") ?: false
+            if (enableFace) {
+                val faceDetectEmotion = call.argument<Boolean>("detectEmotion") ?: true
+                val faceMinSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
+                val faceEnableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
+                val faceMinEmotionConf = call.argument<Double>("minEmotionConfidence")?.toFloat() ?: 0.4f
 
-        // Initialize face processor if enabled
-        val enableFace = call.argument<Boolean>("enableFace") ?: false
-        if (enableFace) {
-            val faceDetectEmotion = call.argument<Boolean>("detectEmotion") ?: true
-            val faceMinSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
-            val faceEnableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
-            val faceMinEmotionConf = call.argument<Double>("minEmotionConfidence")?.toFloat() ?: 0.4f
-
-            faceProcessor = FaceDetectionProcessor(act)
-            faceProcessor!!.initialize(
-                detectEmotion = faceDetectEmotion,
-                minFaceSize = faceMinSize,
-                enableTracking = faceEnableTracking,
-                minEmotionConfidence = faceMinEmotionConf,
-            )
+                faceProcessor = FaceDetectionProcessor(act)
+                faceProcessor!!.initialize(
+                    detectEmotion = faceDetectEmotion,
+                    minFaceSize = faceMinSize,
+                    enableTracking = faceEnableTracking,
+                    minEmotionConfidence = faceMinEmotionConf,
+                )
+            }
+        } catch (e: Exception) {
+            handProcessor?.close()
+            faceProcessor?.close()
+            handProcessor = null
+            faceProcessor = null
+            result.error("INIT_ERROR", "Failed to initialize ML models: ${e.message}", e.stackTraceToString())
+            return
         }
 
         resultAggregator = ResultAggregator(mainHandler) { resultStreamHandler.eventSink }
@@ -141,7 +152,16 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             owner.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
             result.success(textureId)
         } catch (e: Exception) {
-            result.error("CAMERA_ERROR", e.message, e.stackTraceToString())
+            cameraManager?.release()
+            handProcessor?.close()
+            faceProcessor?.close()
+            cameraManager = null
+            frameProcessor = null
+            resultAggregator = null
+            handProcessor = null
+            faceProcessor = null
+            lifecycleOwner = null
+            result.error("CAMERA_ERROR", "Failed to start camera: ${e.message}", e.stackTraceToString())
         }
     }
 

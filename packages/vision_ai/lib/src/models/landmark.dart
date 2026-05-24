@@ -1,5 +1,6 @@
 import 'dart:ui' show Offset;
 
+/// A 3D point in normalized image coordinates [0.0, 1.0].
 class NormalizedLandmark {
   final double x;
   final double y;
@@ -14,6 +15,7 @@ class NormalizedLandmark {
   String toString() => 'NormalizedLandmark($x, $y, $z)';
 }
 
+/// Indices and topology for the 21 hand landmark points.
 abstract class HandLandmarkIndex {
   static const int wrist = 0;
   static const int thumbCmc = 1;

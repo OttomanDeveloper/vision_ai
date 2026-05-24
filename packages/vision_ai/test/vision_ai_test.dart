@@ -45,6 +45,19 @@ void main() {
     expect(vision.isRunning, isFalse);
   });
 
+  test('VisionAi.stop() is idempotent when not running', () async {
+    final vision = VisionAi.hand();
+    await vision.stop();
+    await vision.stop();
+    expect(vision.isRunning, isFalse);
+  });
+
+  test('VisionAi.dispose() is idempotent', () async {
+    final vision = VisionAi.hand();
+    await vision.dispose();
+    await vision.dispose();
+  });
+
   test('VisionAi.face() creates face-only detector', () {
     final vision = VisionAi.face();
     expect(vision.isRunning, isFalse);
