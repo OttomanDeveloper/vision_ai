@@ -66,10 +66,12 @@ enum FaceDistanceZone {
 class FaceDistanceEstimator {
   /// Assumed real-world face width in centimeters.
   /// Average adult face is ~14-16cm. Adjust for your use case.
+  // Increasing this shifts all distance estimates proportionally higher
   final double assumedFaceWidthCm;
 
   /// Assumed horizontal field of view of the camera in degrees.
   /// Most phone front cameras are 70-80°. Back cameras vary more.
+  // A wider FOV assumption makes the same face size appear further away
   final double cameraFovDegrees;
 
   FaceDistanceEstimator({
@@ -79,12 +81,14 @@ class FaceDistanceEstimator {
 
   /// Estimate distance from a face result and the camera image size.
   /// Returns null if the bounding box has zero width.
+  // imageSize must match the coordinate space of face.boundingBox (raw pixel dimensions)
   FaceDistanceEstimate? estimate(FaceResult face, Size imageSize) {
     if (imageSize.width <= 0) return null;
 
     final faceWidthPx = face.boundingBox.width;
     if (faceWidthPx <= 0) return null;
 
+    // Fraction of the image width occupied by the face — scale-independent proxy for depth
     final faceRatio = faceWidthPx / imageSize.width;
 
     // Pinhole camera model:
@@ -97,6 +101,7 @@ class FaceDistanceEstimator {
 
     final distanceCm = assumedFaceWidthCm / (2 * faceRatio * tanHalfFov);
 
+    // Zone thresholds match the doc-comment ranges on [FaceDistanceZone]
     final zone = switch (faceRatio) {
       > 0.4 => FaceDistanceZone.veryClose,
       > 0.2 => FaceDistanceZone.close,
@@ -106,6 +111,7 @@ class FaceDistanceEstimator {
 
     return FaceDistanceEstimate(
       distanceCm: distanceCm,
+      // Clamp faceRatio to [0,1] — boundingBox can technically exceed imageSize on some devices
       faceRatio: faceRatio.clamp(0.0, 1.0),
       zone: zone,
     );

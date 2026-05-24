@@ -49,13 +49,16 @@ class BlinkEvent {
 /// ```
 class BlinkDetector {
   /// Eye open probability above this = "eyes open".
+  // 0.7 avoids false positives from squinting or partial lighting
   final double openThreshold;
 
   /// Eye open probability below this = "eyes closed".
+  // Gap between thresholds (0.3–0.7) prevents rapid oscillation at the boundary
   final double closedThreshold;
 
   /// Maximum time (ms) eyes can stay closed and still count as a blink.
   /// Longer closures are ignored (user just closing eyes, not blinking).
+  // 500ms covers natural blink range (~100–400ms) with safety margin
   final int maxBlinkDurationMs;
 
   BlinkDetector({
@@ -66,18 +69,20 @@ class BlinkDetector {
 
   // State tracking for left eye
   _EyeState _leftState = _EyeState.open;
-  int _leftClosedAt = 0;
+  int _leftClosedAt = 0; // epoch ms when eye transitioned to closed
 
   // State tracking for right eye
   _EyeState _rightState = _EyeState.open;
-  int _rightClosedAt = 0;
+  int _rightClosedAt = 0; // epoch ms when eye transitioned to closed
 
   /// Feed a face result and get back a [BlinkEvent] if a blink just completed.
   /// Returns null if no blink happened on this frame.
+  // Only one event is emitted per frame even if both eyes blink simultaneously
   BlinkEvent? update(FaceResult face, int timestampMs) {
     final leftProb = face.leftEyeOpenProbability;
     final rightProb = face.rightEyeOpenProbability;
 
+    // Probabilities are null when face detection ran without classifications enabled
     if (leftProb == null || rightProb == null) return null;
 
     final leftBlink = _updateEye(
@@ -98,6 +103,7 @@ class BlinkDetector {
     if (leftBlink != null && rightBlink != null) {
       return BlinkEvent(
         eye: BlinkEye.both,
+        // Average avoids bias if one eye re-opened a frame before the other
         durationMs: (leftBlink + rightBlink) ~/ 2,
         timestampMs: timestampMs,
       );
@@ -123,6 +129,7 @@ class BlinkDetector {
   }
 
   /// Returns blink duration in ms if a blink just completed, null otherwise.
+  // Mutation via callbacks keeps each eye's state encapsulated without a class per eye
   int? _updateEye(
     double probability,
     int timestampMs,
@@ -152,6 +159,7 @@ class BlinkDetector {
           return null;
         }
         // Check timeout — if closed too long, reset to open state
+        // Prevents the detector from locking up if the face disappears mid-blink
         if (timestampMs - closedAt > maxBlinkDurationMs) {
           setState(_EyeState.open);
         }

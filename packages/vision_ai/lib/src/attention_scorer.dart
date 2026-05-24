@@ -82,12 +82,14 @@ class AttentionScore {
 /// ```
 class AttentionScorer {
   /// Weight for eye openness in the final score.
+  // Eyes carry as much weight as orientation because blinking/drowsiness is a key signal
   final double eyeWeight;
 
   /// Weight for face orientation in the final score.
   final double orientationWeight;
 
   /// Weight for head stability in the final score.
+  // Lower than the other two — transient motion shouldn't dominate the score
   final double stabilityWeight;
 
   /// Pitch (X) beyond this angle (degrees) drops orientation score to zero.
@@ -115,6 +117,7 @@ class AttentionScorer {
     this.maxAngularVelocity = 60.0,
   });
 
+  // Ring-buffer of recent angle samples for velocity computation
   final _angleHistory = Queue<_AngleSnapshot>();
 
   /// Feed a face result and get back an [AttentionScore].
@@ -123,13 +126,16 @@ class AttentionScorer {
   AttentionScore? update(FaceResult face, int timestampMs) {
     final leftEye = face.leftEyeOpenProbability;
     final rightEye = face.rightEyeOpenProbability;
+    // Null means the face detector was started without CLASSIFY_ALL option
     if (leftEye == null || rightEye == null) return null;
 
     // --- Eye openness ---
+    // Simple average; partial closures (squinting) reduce the score proportionally
     final eyeScore = ((leftEye + rightEye) / 2.0).clamp(0.0, 1.0);
 
     // --- Face orientation ---
     // Map pitch and yaw to [0,1]. Angle at 0 = perfect, at max = 0.
+    // Multiply rather than average so both axes must be aligned simultaneously
     final pitchNorm =
         (1.0 - (face.headEulerAngleX.abs() / maxPitchDegrees)).clamp(0.0, 1.0);
     final yawNorm =
@@ -149,7 +155,7 @@ class AttentionScorer {
       _angleHistory.removeFirst();
     }
 
-    double stabilityScore = 1.0;
+    double stabilityScore = 1.0; // defaults to stable when there's no history yet
     if (_angleHistory.length >= 2) {
       final oldest = _angleHistory.first;
       final newest = _angleHistory.last;
@@ -157,6 +163,7 @@ class AttentionScorer {
       if (dtMs > 0) {
         final pitchDelta = (newest.pitch - oldest.pitch).abs();
         final yawDelta = (newest.yaw - oldest.yaw).abs();
+        // Use max instead of Euclidean distance — a pure yaw turn is as distracting as a diagonal one
         final maxDelta = math.max(pitchDelta, yawDelta);
         final velocity = maxDelta / (dtMs / 1000.0); // degrees per second
         stabilityScore =
@@ -165,6 +172,7 @@ class AttentionScorer {
     }
 
     // --- Weighted combination ---
+    // Normalize by totalWeight so arbitrary weight values still produce a [0,1] result
     final totalWeight = eyeWeight + orientationWeight + stabilityWeight;
     final score = ((eyeScore * eyeWeight +
                 orientationScore * orientationWeight +
@@ -172,6 +180,7 @@ class AttentionScorer {
             totalWeight)
         .clamp(0.0, 1.0);
 
+    // Thresholds match the doc-comment ranges on [AttentionLevel]
     final level = switch (score) {
       >= 0.75 => AttentionLevel.high,
       >= 0.45 => AttentionLevel.medium,
@@ -195,8 +204,8 @@ class AttentionScorer {
 }
 
 class _AngleSnapshot {
-  final double pitch;
-  final double yaw;
+  final double pitch; // degrees, ML Kit Euler X
+  final double yaw;   // degrees, ML Kit Euler Y
   final int timestampMs;
   const _AngleSnapshot({
     required this.pitch,

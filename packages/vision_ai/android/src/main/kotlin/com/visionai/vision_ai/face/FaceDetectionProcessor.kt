@@ -26,18 +26,18 @@ class FaceDetectionProcessor(private val context: Context) {
     private var detectEmotion = true
     private var detectContours = false
     private var detectLandmarks = false
-    private var minEmotionConfidence = 0.4f
+    private var minEmotionConfidence = 0.4f // results below this threshold are discarded as unreliable
 
     fun initialize(
         detectEmotion: Boolean = true,
         detectContours: Boolean = false,
         detectLandmarks: Boolean = false,
-        minFaceSize: Float = 0.1f,
-        enableTracking: Boolean = true,
+        minFaceSize: Float = 0.1f,       // fraction of the shorter image dimension; smaller = more CPU
+        enableTracking: Boolean = true,  // silently disabled when detectContours=true (ML Kit constraint)
         minEmotionConfidence: Float = 0.4f,
-        accurateMode: Boolean = false,
+        accurateMode: Boolean = false,   // PERFORMANCE_MODE_ACCURATE is slower but catches distant/angled faces
     ) {
-        close()
+        close() // release existing detector/classifier before rebuilding
 
         this.detectEmotion = detectEmotion
         this.detectContours = detectContours
@@ -51,7 +51,7 @@ class FaceDetectionProcessor(private val context: Context) {
 
         val optionsBuilder = FaceDetectorOptions.Builder()
             .setPerformanceMode(performanceMode)
-            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL) // enables smiling + eye-open probabilities
             .setMinFaceSize(minFaceSize)
 
         if (detectLandmarks) {
@@ -71,17 +71,20 @@ class FaceDetectionProcessor(private val context: Context) {
 
         if (detectEmotion) {
             emotionClassifier = EmotionClassifier(context)
-            emotionClassifier!!.initialize()
+            emotionClassifier!!.initialize() // loads and mmap's the TFLite model from assets
         }
     }
 
+    // Synchronous (Tasks.await); blocks the analysis thread until ML Kit returns results
+    // rotationDegrees is informational only here — the bitmap is already upright from ImageConverter
     fun processFrame(bitmap: Bitmap, rotationDegrees: Int, pool: BitmapPool): FaceProcessorResult {
         val detector = faceDetector ?: return FaceProcessorResult.empty()
 
+        // Pass rotation=0 because ImageConverter already applied the rotation to the bitmap
         val inputImage = InputImage.fromBitmap(bitmap, 0)
 
         val faces: List<Face> = try {
-            Tasks.await(detector.process(inputImage))
+            Tasks.await(detector.process(inputImage)) // blocking; safe because we're on the analysis thread
         } catch (e: Exception) {
             Log.e(TAG, "Face detection failed", e)
             return FaceProcessorResult.empty()
@@ -95,6 +98,7 @@ class FaceDetectionProcessor(private val context: Context) {
             var emotionResult = EmotionResult.none()
 
             if (detectEmotion && emotionClassifier != null) {
+                // Crop with padding so the model sees forehead/chin context, not just inner face
                 val cropped = cropFace(bitmap, face.boundingBox, pool)
                 if (cropped != null) {
                     emotionResult = emotionClassifier!!.classify(cropped, pool)
@@ -113,7 +117,7 @@ class FaceDetectionProcessor(private val context: Context) {
             if (detectContours) {
                 val extracted = extractContours(face)
                 contourPoints = extracted.first
-                contourSizes = extracted.second
+                contourSizes = extracted.second // number of points per contour region, in fixed order
             }
 
             results.add(
@@ -121,14 +125,14 @@ class FaceDetectionProcessor(private val context: Context) {
                     emotion = emotionResult.primaryEmotion,
                     emotionConfidence = emotionResult.confidence,
                     emotionScores = emotionResult.scores,
-                    boundingBox = face.boundingBox,
-                    headEulerAngleX = (face.headEulerAngleX).toDouble(),
-                    headEulerAngleY = (face.headEulerAngleY).toDouble(),
-                    headEulerAngleZ = (face.headEulerAngleZ).toDouble(),
-                    smilingProbability = face.smilingProbability?.toDouble(),
+                    boundingBox = face.boundingBox, // pixel coords in the input bitmap space
+                    headEulerAngleX = (face.headEulerAngleX).toDouble(), // pitch: positive=looking up, degrees
+                    headEulerAngleY = (face.headEulerAngleY).toDouble(), // yaw: positive=turned right, degrees
+                    headEulerAngleZ = (face.headEulerAngleZ).toDouble(), // roll: positive=head tilted right, degrees
+                    smilingProbability = face.smilingProbability?.toDouble(),      // null when not in classification mode
                     leftEyeOpenProbability = face.leftEyeOpenProbability?.toDouble(),
                     rightEyeOpenProbability = face.rightEyeOpenProbability?.toDouble(),
-                    trackingId = face.trackingId ?: -1,
+                    trackingId = face.trackingId ?: -1, // -1 when tracking is disabled or face is new
                     landmarkPoints = landmarkPoints,
                     contourPoints = contourPoints,
                     contourSizes = contourSizes,
@@ -151,14 +155,14 @@ class FaceDetectionProcessor(private val context: Context) {
             FaceLandmark.LEFT_EAR, FaceLandmark.RIGHT_EAR,
             FaceLandmark.LEFT_CHEEK, FaceLandmark.RIGHT_CHEEK,
         )
-        val result = DoubleArray(types.size * 2)
+        val result = DoubleArray(types.size * 2) // flattened for efficient Flutter codec transfer
         for (i in types.indices) {
             val lm = face.getLandmark(types[i])
             if (lm != null) {
-                result[i * 2] = lm.position.x.toDouble()
-                result[i * 2 + 1] = lm.position.y.toDouble()
+                result[i * 2] = lm.position.x.toDouble()     // pixel x in input bitmap
+                result[i * 2 + 1] = lm.position.y.toDouble() // pixel y in input bitmap
             } else {
-                result[i * 2] = -1.0
+                result[i * 2] = -1.0     // sentinel for "not visible" (face turned away)
                 result[i * 2 + 1] = -1.0
             }
         }
@@ -188,12 +192,12 @@ class FaceDetectionProcessor(private val context: Context) {
             FaceContour.RIGHT_CHEEK,
         )
 
-        val allPoints = mutableListOf<Double>()
-        val sizes = IntArray(contourTypes.size)
+        val allPoints = mutableListOf<Double>() // flat [x0,y0, x1,y1, ...] across all contours
+        val sizes = IntArray(contourTypes.size)  // point count per contour; needed to split allPoints on Dart side
 
         for (i in contourTypes.indices) {
             val contour = face.getContour(contourTypes[i])
-            val points = contour?.points ?: emptyList()
+            val points = contour?.points ?: emptyList() // null when face is turned too far for this region
             sizes[i] = points.size
             for (pt in points) {
                 allPoints.add(pt.x.toDouble())
@@ -204,10 +208,12 @@ class FaceDetectionProcessor(private val context: Context) {
         return Pair(allPoints.toDoubleArray(), sizes)
     }
 
+    // Crops and pads the bounding box; 20% padding gives the emotion model forehead/chin context
     private fun cropFace(bitmap: Bitmap, bbox: Rect, pool: BitmapPool): Bitmap? {
         val padX = (bbox.width() * 0.2).toInt()
         val padY = (bbox.height() * 0.2).toInt()
 
+        // Clamp to bitmap bounds to avoid illegal crop rectangles at image edges
         val left = (bbox.left - padX).coerceAtLeast(0)
         val top = (bbox.top - padY).coerceAtLeast(0)
         val right = (bbox.right + padX).coerceAtMost(bitmap.width)
@@ -216,7 +222,7 @@ class FaceDetectionProcessor(private val context: Context) {
         val width = right - left
         val height = bottom - top
 
-        if (width <= 0 || height <= 0) return null
+        if (width <= 0 || height <= 0) return null // can happen when face is partially off-screen
 
         return try {
             pool.getCropBitmap(bitmap, left, top, width, height)
@@ -226,6 +232,7 @@ class FaceDetectionProcessor(private val context: Context) {
         }
     }
 
+    // Safe to call multiple times; also called by initialize() before rebuilding
     fun close() {
         faceDetector?.close()
         emotionClassifier?.close()
@@ -240,19 +247,19 @@ class FaceDetectionProcessor(private val context: Context) {
 
 data class SingleFaceResult(
     val emotion: String,
-    val emotionConfidence: Double,
-    val emotionScores: DoubleArray,
-    val boundingBox: Rect,
-    val headEulerAngleX: Double,
-    val headEulerAngleY: Double,
-    val headEulerAngleZ: Double,
-    val smilingProbability: Double?,
+    val emotionConfidence: Double,     // [0.0, 1.0] confidence for primaryEmotion
+    val emotionScores: DoubleArray,    // [0.0,1.0] × 7: scores for all emotion classes in FER2013 order
+    val boundingBox: Rect,             // pixel coords in input bitmap; not normalized
+    val headEulerAngleX: Double,       // pitch in degrees; positive = looking up
+    val headEulerAngleY: Double,       // yaw in degrees; positive = turned right
+    val headEulerAngleZ: Double,       // roll in degrees; positive = head tilted right
+    val smilingProbability: Double?,   // null when ML Kit classification is disabled
     val leftEyeOpenProbability: Double?,
     val rightEyeOpenProbability: Double?,
-    val trackingId: Int,
-    val landmarkPoints: DoubleArray?,
-    val contourPoints: DoubleArray?,
-    val contourSizes: IntArray?,
+    val trackingId: Int,               // -1 when tracking disabled or face has no ID yet
+    val landmarkPoints: DoubleArray?,  // null when detectLandmarks=false; 20 doubles (10 landmarks × [x,y])
+    val contourPoints: DoubleArray?,   // null when detectContours=false; flat [x,y,...] across all contour regions
+    val contourSizes: IntArray?,       // null when detectContours=false; point count per contour region
 ) {
     fun toMap(): Map<String, Any?> = mapOf(
         "emotion" to emotion,

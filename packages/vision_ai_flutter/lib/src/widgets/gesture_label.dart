@@ -15,8 +15,10 @@ class GestureLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Collapse to nothing when no gesture is recognized — avoids an empty badge
     if (!hand.gesture.isRecognized) return const SizedBox.shrink();
 
+    // Custom gestures use the model-provided name; fall back to 'CUSTOM' if unnamed
     final text = hand.gesture == Gesture.custom
         ? (hand.customGestureName ?? 'CUSTOM').toUpperCase()
         : _displayName(hand.gesture);
@@ -38,6 +40,7 @@ class GestureLabel extends StatelessWidget {
     );
   }
 
+  // All-caps display strings match the visual convention used in camera viewfinders
   static String _displayName(Gesture gesture) => switch (gesture) {
         Gesture.fist => 'FIST',
         Gesture.openHand => 'OPEN HAND',
@@ -53,6 +56,6 @@ class GestureLabel extends StatelessWidget {
         Gesture.four => 'FOUR',
         Gesture.five => 'FIVE',
         Gesture.custom => 'CUSTOM',
-        Gesture.none => '',
+        Gesture.none => '', // unreachable — guarded by isRecognized above
       };
 }

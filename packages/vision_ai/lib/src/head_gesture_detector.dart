@@ -47,9 +47,11 @@ class HeadGestureEvent {
 /// ```
 class HeadGestureDetector {
   /// Minimum pitch angle change (degrees) to count as an up/down movement.
+  // 8° is enough to distinguish deliberate nods from postural sway
   final double nodAngleThreshold;
 
   /// Minimum yaw angle change (degrees) to count as a left/right movement.
+  // Slightly higher than nod because lateral head movement is more common in casual use
   final double shakeAngleThreshold;
 
   /// Number of direction changes needed to trigger a gesture.
@@ -72,22 +74,23 @@ class HeadGestureDetector {
     this.cooldownMs = 1500,
   });
 
-  // Pitch (nod) tracking
+  // Pitch (nod) tracking — Queue keeps only samples inside windowMs
   final _pitchHistory = Queue<_AngleSample>();
-  double? _lastPitch;
-  int _pitchDirectionChanges = 0;
-  bool _pitchGoingUp = false;
+  double? _lastPitch; // null until first frame
+  int _pitchDirectionChanges = 0; // count of threshold-crossing reversals
+  bool _pitchGoingUp = false; // current movement direction
 
-  // Yaw (shake) tracking
+  // Yaw (shake) tracking — same structure as pitch
   final _yawHistory = Queue<_AngleSample>();
-  double? _lastYaw;
+  double? _lastYaw; // null until first frame
   int _yawDirectionChanges = 0;
   bool _yawGoingRight = false;
 
-  int _lastDetectionTime = 0;
+  int _lastDetectionTime = 0; // ms timestamp of most recent fired gesture
 
   /// Feed a face result and get back a [HeadGestureEvent] if a nod or
   /// shake just completed. Returns null if no gesture detected.
+  // Angles are still updated during cooldown to avoid stale state on next detection
   HeadGestureEvent? update(FaceResult face, int timestampMs) {
     // Cooldown — don't detect too frequently
     if (timestampMs - _lastDetectionTime < cooldownMs) {
@@ -129,6 +132,7 @@ class HeadGestureDetector {
 
     if (nodDetected) {
       _lastDetectionTime = timestampMs;
+      // Clear counters so the next gesture starts fresh
       _pitchDirectionChanges = 0;
       _pitchHistory.clear();
       return HeadGestureEvent(gesture: HeadGesture.nod, timestampMs: timestampMs);
@@ -167,7 +171,7 @@ class HeadGestureDetector {
 
     final delta = current - previous;
 
-    // Skip tiny movements (noise)
+    // Skip tiny movements (noise) — 1° is below ML Kit's angular precision
     if (delta.abs() < 1.0) return false;
 
     final currentlyGoingPositive = delta > 0;
@@ -180,6 +184,7 @@ class HeadGestureDetector {
         final recentMax = history.fold<double>(
             history.first.angle, (m, s) => s.angle > m ? s.angle : m);
 
+        // Only count the reversal if the total arc exceeded the threshold
         if (recentMax - recentMin >= threshold) {
           setDirectionChanges(directionChanges + 1);
         }
@@ -187,6 +192,7 @@ class HeadGestureDetector {
       setGoingPositive(currentlyGoingPositive);
     }
 
+    // +1 accounts for the pending change not yet committed to directionChanges
     if (directionChanges + 1 >= minOscillations) {
       return true;
     }
@@ -194,6 +200,7 @@ class HeadGestureDetector {
     return false;
   }
 
+  // Keep angle history current even when in cooldown so direction tracking doesn't jump
   void _updateAngles(FaceResult face, int timestampMs) {
     _lastPitch = face.headEulerAngleX;
     _lastYaw = face.headEulerAngleY;
@@ -214,7 +221,7 @@ class HeadGestureDetector {
 }
 
 class _AngleSample {
-  final double angle;
+  final double angle; // degrees
   final int timestampMs;
   const _AngleSample(this.angle, this.timestampMs);
 }

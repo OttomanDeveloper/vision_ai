@@ -66,15 +66,19 @@ class TwoHandEvent {
 /// ```
 class TwoHandInteractionDetector {
   /// Max normalized distance between index tips to count as a pinch.
+  // 0.06 ≈ 6% of image width; tighter than touch to avoid false positives from nearby hands
   final double pinchThreshold;
 
   /// Max normalized distance between any two fingertips to count as touching.
+  // Slightly looser than pinch to accommodate finger-tip-to-knuckle contact
   final double touchThreshold;
 
   /// Minimum wrist approach speed (normalized units/sec) to trigger a clap.
+  // 0.3 norm/s distinguishes a clap from hands slowly coming together
   final double clapVelocityThreshold;
 
   /// Cooldown (ms) after a detection before another can fire.
+  // 500ms prevents a single clap/pinch from emitting several consecutive events
   final int cooldownMs;
 
   TwoHandInteractionDetector({
@@ -84,10 +88,11 @@ class TwoHandInteractionDetector {
     this.cooldownMs = 500,
   });
 
-  double? _prevWristDistance;
-  int? _prevTimestampMs;
-  int _lastDetectionMs = 0;
+  double? _prevWristDistance; // normalized distance between wrists on the previous frame
+  int? _prevTimestampMs;      // timestamp of the previous wrist measurement
+  int _lastDetectionMs = 0;  // ms timestamp of most recent fired event
 
+  // Only the 5 fingertips — palm/knuckle landmarks excluded to avoid mid-hand touches
   static const _fingertipIndices = [
     HandLandmarkIndex.thumbTip,
     HandLandmarkIndex.indexTip,
@@ -98,8 +103,10 @@ class TwoHandInteractionDetector {
 
   /// Feed a vision result and get back a [TwoHandEvent] if an interaction
   /// was detected. Returns null if fewer than 2 hands, or no interaction.
+  // Wrist history is always updated so clap velocity is accurate when cooldown lifts
   TwoHandEvent? update(VisionResult result) {
     if (result.hands.length < 2) {
+      // Reset velocity tracking when a hand disappears — stale distance causes false claps
       _prevWristDistance = null;
       _prevTimestampMs = null;
       return null;
@@ -116,9 +123,11 @@ class TwoHandInteractionDetector {
     final h0 = result.hands[0];
     final h1 = result.hands[1];
 
+    // Full 21-landmark hand required; partial results can't reliably compute distances
     if (h0.landmarks.length < 21 || h1.landmarks.length < 21) return null;
 
     // --- Pinch: index tips close ---
+    // Checked first because a pinch also satisfies the touching condition
     final indexDist = _landmarkDist(
       h0.landmarks[HandLandmarkIndex.indexTip],
       h1.landmarks[HandLandmarkIndex.indexTip],
@@ -144,6 +153,7 @@ class TwoHandInteractionDetector {
     if (_prevWristDistance != null && _prevTimestampMs != null) {
       final dtMs = ts - _prevTimestampMs!;
       if (dtMs > 0) {
+        // Positive approachSpeed = wrists getting closer (distance shrinking)
         final approachSpeed =
             (_prevWristDistance! - wristDist) / (dtMs / 1000.0);
         if (approachSpeed > clapVelocityThreshold &&
@@ -160,6 +170,7 @@ class TwoHandInteractionDetector {
     }
 
     // --- Touching: any fingertips close ---
+    // Fallback — fires when hands overlap without the velocity spike of a clap
     if (closestFingertip < touchThreshold) {
       _lastDetectionMs = ts;
       _updateWristHistory(h0, h1, ts);
@@ -174,6 +185,7 @@ class TwoHandInteractionDetector {
     return null;
   }
 
+  // Persists wrist distance every frame so velocity is available on the next frame
   void _updateWristHistory(HandResult h0, HandResult h1, int ts) {
     _prevWristDistance = _landmarkDist(
       h0.landmarks[HandLandmarkIndex.wrist],
@@ -182,6 +194,7 @@ class TwoHandInteractionDetector {
     _prevTimestampMs = ts;
   }
 
+  // O(25) brute force across all fingertip pairs — small enough that no optimization is needed
   double _closestFingertipDistance(HandResult h0, HandResult h1) {
     var minDist = double.infinity;
     for (final i in _fingertipIndices) {
@@ -193,6 +206,7 @@ class TwoHandInteractionDetector {
     return minDist;
   }
 
+  // 2D Euclidean distance in normalized image coordinates; ignores Z depth
   static double _landmarkDist(NormalizedLandmark a, NormalizedLandmark b) {
     final dx = a.x - b.x;
     final dy = a.y - b.y;

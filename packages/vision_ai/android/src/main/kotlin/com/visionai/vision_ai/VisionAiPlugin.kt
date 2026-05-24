@@ -44,7 +44,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     private var handProcessor: HandGestureProcessor? = null
     private var faceProcessor: FaceDetectionProcessor? = null
     private var activity: Activity? = null
-    private var lifecycleOwner: PluginLifecycleOwner? = null
+    private var lifecycleOwner: PluginLifecycleOwner? = null // synthetic owner; CameraX needs one even without a real Activity lifecycle
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         textureRegistry = binding.textureEntry()
@@ -77,6 +77,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             return
         }
 
+        // Prevent double-start; Flutter can call this before the previous stream finishes tearing down
         if (cameraManager != null) {
             result.error("ALREADY_RUNNING", "Camera is already running. Call stopCamera first.", null)
             return
@@ -114,7 +115,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 val faceDetectEmotion = call.argument<Boolean>("detectEmotion") ?: true
                 val faceDetectLandmarks = call.argument<Boolean>("detectLandmarks") ?: false
                 val faceDetectContours = call.argument<Boolean>("detectContours") ?: false
-                val faceMinSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
+                val faceMinSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f // fraction of image width; smaller values are slower
                 val faceEnableTracking = call.argument<Boolean>("enableFaceTracking") ?: true
                 val faceMinEmotionConf = call.argument<Double>("minEmotionConfidence")?.toFloat() ?: 0.4f
                 val faceAccurateMode = call.argument<Boolean>("accurateMode") ?: false
@@ -131,6 +132,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 )
             }
         } catch (e: Exception) {
+            // Partial init — clean up whatever did get created before surfacing the error
             handProcessor?.close()
             faceProcessor?.close()
             handProcessor = null
@@ -164,9 +166,10 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
                 resolution = resolution,
                 frameProcessor = frameProcessor!!,
             )
+            // Drive the lifecycle to RESUMED so CameraX starts delivering frames
             owner.handleLifecycleEvent(Lifecycle.Event.ON_START)
             owner.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-            result.success(textureId)
+            result.success(textureId) // Flutter Texture widget uses this id to render the preview
         } catch (e: Exception) {
             cameraManager?.release()
             handProcessor?.close()
@@ -182,9 +185,11 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     private fun handleStopCamera(result: Result) {
+        // Pause/stop lifecycle before unbinding to let CameraX flush in-flight frames cleanly
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         lifecycleOwner?.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
         cameraManager?.release()
+        // Capture references before nulling so the executor closure captures live objects
         val hp = handProcessor
         val fp = faceProcessor
         val pool = frameProcessor?.bitmapPool
@@ -194,6 +199,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         handProcessor = null
         faceProcessor = null
         lifecycleOwner = null
+        // Close ML resources on the analysis thread to avoid racing with any queued frame
         analysisExecutor.execute {
             hp?.close()
             fp?.close()
@@ -210,6 +216,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun handleUpdateHandConfig(call: MethodCall, result: Result) {
         val act = activity
+        // No-op if hand detection was not enabled at startup
         if (act == null || handProcessor == null) {
             result.success(null)
             return
@@ -222,6 +229,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val customGestureConfigs = parseCustomGestures(call)
         val gestureFilters = parseGestureFilters(call)
 
+        // initialize() closes and recreates the recognizer — briefly drops a frame
         handProcessor!!.initialize(
             maxHands = maxHands,
             minDetectionConfidence = minDetection,
@@ -237,6 +245,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
 
     private fun handleUpdateFaceConfig(call: MethodCall, result: Result) {
         val act = activity
+        // No-op if face detection was not enabled at startup
         if (act == null || faceProcessor == null) {
             result.success(null)
             return
@@ -266,7 +275,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         return rawList.mapNotNull { map ->
             val name = map["name"] as? String ?: return@mapNotNull null
             val states = map["fingerStates"] as? List<Int> ?: return@mapNotNull null
-            if (states.size != 5) return@mapNotNull null
+            if (states.size != 5) return@mapNotNull null // must have exactly one state per finger
             CustomGestureConfig(name, states.toIntArray())
         }
     }
@@ -278,7 +287,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         val rawThresholds = call.argument<Map<String, Any>>("gestureThresholds")
         val thresholds = rawThresholds?.mapValues { (it.value as Number).toFloat() }
         return GestureFilterConfig(
-            allowed = allowed?.ifEmpty { null },
+            allowed = allowed?.ifEmpty { null },  // empty set is treated as "no filter" to avoid blocking all gestures
             denied = denied?.ifEmpty { null },
             thresholds = thresholds?.ifEmpty { null },
         )
@@ -310,7 +319,7 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
-        activity = null
+        activity = null // camera keeps running; activity ref is not used during streaming
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
@@ -327,10 +336,11 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         cameraManager?.release()
         handProcessor?.close()
         faceProcessor?.close()
-        analysisExecutor.shutdown()
+        analysisExecutor.shutdown() // does not cancel in-flight tasks, just stops accepting new ones
     }
 }
 
+// Holds the active EventSink so ResultAggregator can post to it via a lambda, avoiding a hard reference
 class ResultStreamHandler : EventChannel.StreamHandler {
     var eventSink: EventChannel.EventSink? = null
 
@@ -343,19 +353,23 @@ class ResultStreamHandler : EventChannel.StreamHandler {
     }
 }
 
+// Synthetic LifecycleOwner because the plugin doesn't have a Fragment/Activity to borrow from.
+// CameraX requires a LifecycleOwner to manage camera bind/unbind automatically.
 class PluginLifecycleOwner : LifecycleOwner {
     private val lifecycleRegistry = LifecycleRegistry(this)
 
     override val lifecycle: Lifecycle
         get() = lifecycleRegistry
 
+    // Caller must drive transitions in order (ON_CREATE → ON_START → ON_RESUME → …)
     fun handleLifecycleEvent(event: Lifecycle.Event) {
         lifecycleRegistry.handleLifecycleEvent(event)
     }
 }
 
+// Immutable snapshot of filter settings parsed from a single method call; null = no filter applied
 data class GestureFilterConfig(
-    val allowed: Set<String>?,
-    val denied: Set<String>?,
-    val thresholds: Map<String, Float>?,
+    val allowed: Set<String>?,  // only these gestures pass through; null = allow all
+    val denied: Set<String>?,   // these gestures are suppressed; null = deny none
+    val thresholds: Map<String, Float>?, // per-gesture minimum confidence, range [0.0, 1.0]
 )

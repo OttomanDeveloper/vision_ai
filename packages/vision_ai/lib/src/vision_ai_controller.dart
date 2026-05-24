@@ -26,6 +26,7 @@ class VisionAi {
   final FaceConfig? _faceConfig;
   final CameraConfig _cameraConfig;
 
+  // Guards against calling start/results after dispose.
   bool _isRunning = false;
   bool _isDisposed = false;
 
@@ -56,6 +57,7 @@ class VisionAi {
   }) =>
       VisionAi(face: config, camera: camera);
 
+  // Indirection lets tests swap the platform without touching this class.
   VisionAiPlatform get _platform => VisionAiPlatform.instance;
 
   /// Whether the detector is currently processing camera frames.
@@ -73,6 +75,7 @@ class VisionAi {
   /// Throws [PlatformException] if camera access fails.
   Future<int> start() async {
     _ensureNotDisposed();
+    // Guard prevents double-starting; -1 signals "already running" to callers.
     if (_isRunning) return -1;
 
     final textureId = await _platform.startCamera(
@@ -113,11 +116,13 @@ class VisionAi {
   /// Releases all resources. The instance cannot be reused after disposal.
   Future<void> dispose() async {
     if (_isDisposed) return;
+    // Mark disposed before awaiting native to block re-entrant calls.
     _isDisposed = true;
     _isRunning = false;
     await _platform.dispose();
   }
 
+  // Throws StateError rather than silently failing so callers catch lifecycle bugs early.
   void _ensureNotDisposed() {
     if (_isDisposed) {
       throw StateError(

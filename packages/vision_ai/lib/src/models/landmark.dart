@@ -5,6 +5,7 @@ import 'dart:ui' show Offset;
 /// relative to the image dimensions. Z represents depth relative to the wrist
 /// (negative = closer to camera). Used for [HandResult.landmarks].
 class NormalizedLandmark {
+  // x, y in [0.0, 1.0] relative to image width/height; z is depth in normalized units.
   final double x;
   final double y;
   final double z;
@@ -78,8 +79,10 @@ abstract class HandLandmarkIndex {
   static const int pinkyDip = 19;
   static const int pinkyTip = 20;
 
+  // Must equal the number of constants above; used to validate flat array length.
   static const int count = 21;
 
+  // Ordered pairs used by painters to draw bone segments; palm cross-links included.
   static const List<List<int>> connections = [
     [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
     [0, 5], [5, 6], [6, 7], [7, 8], // Index

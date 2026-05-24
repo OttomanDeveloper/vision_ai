@@ -15,6 +15,7 @@ enum Gesture {
   five,
   /// A user-defined custom gesture. Check [HandResult.customGestureName].
   custom,
+  // Sent when no gesture is confidently matched; may still carry landmark data.
   none;
 
   /// Whether a gesture was detected (not [none]).

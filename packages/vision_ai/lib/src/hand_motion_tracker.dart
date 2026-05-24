@@ -80,12 +80,15 @@ class HandMotion {
 /// ```
 class HandMotionTracker {
   /// Time window (ms) over which velocity is averaged.
+  // 200ms balances responsiveness with jitter suppression at typical 30fps
   final int windowMs;
 
   /// Speed below this threshold (norm/s) is reported as [HandMotionState.still].
+  // 0.02 norm/s ≈ 2% of image width per second — filters tracker noise at rest
   final double stillThreshold;
 
   /// Landmark index to track. Default 0 = wrist.
+  // Wrist is the most stable landmark; fingertips jitter more during gestures
   final int trackingLandmarkIndex;
 
   HandMotionTracker({
@@ -94,6 +97,7 @@ class HandMotionTracker {
     this.trackingLandmarkIndex = 0,
   });
 
+  // Sliding window of recent positions; oldest sample beyond windowMs is pruned each frame
   final _history = Queue<_PositionSample>();
 
   /// Feed a hand result and get back a [HandMotion].
@@ -110,6 +114,7 @@ class HandMotionTracker {
       _history.removeFirst();
     }
 
+    // Need at least two points to compute velocity
     if (_history.length < 2) return null;
 
     final oldest = _history.first;
@@ -117,17 +122,19 @@ class HandMotionTracker {
     final dtMs = newest.timestampMs - oldest.timestampMs;
     if (dtMs <= 0) return null;
 
-    final dtSec = dtMs / 1000.0;
-    final dx = newest.x - oldest.x;
-    final dy = newest.y - oldest.y;
+    final dtSec = dtMs / 1000.0; // convert ms to seconds for units consistency
+    final dx = newest.x - oldest.x; // normalized units, positive = right
+    final dy = newest.y - oldest.y; // normalized units, positive = down
 
     final vx = dx / dtSec;
     final vy = dy / dtSec;
     final speed = math.sqrt(vx * vx + vy * vy);
 
+    // atan2 with (dy, dx) gives angle in screen space where Y increases downward
     final angle = math.atan2(dy, dx);
     final dir = _bucketDirection(angle);
 
+    // Thresholds match the doc-comment ranges on [HandMotionState]
     final state = switch (speed) {
       < 0.02 => HandMotionState.still,
       < 0.15 => HandMotionState.slow,
@@ -145,6 +152,7 @@ class HandMotionTracker {
     );
   }
 
+  // Maps a radian angle to one of 8 45°-wide compass sectors
   static HandDirection _bucketDirection(double radians) {
     // Normalize to [0, 2*pi)
     final a = (radians + 2 * math.pi) % (2 * math.pi);
@@ -159,7 +167,7 @@ class HandMotionTracker {
       5 => HandDirection.upLeft,
       6 => HandDirection.up,
       7 => HandDirection.upRight,
-      _ => HandDirection.right,
+      _ => HandDirection.right, // unreachable after % 8, satisfies exhaustiveness
     };
   }
 
@@ -170,8 +178,8 @@ class HandMotionTracker {
 }
 
 class _PositionSample {
-  final double x;
-  final double y;
+  final double x; // normalized [0,1], landmark.x
+  final double y; // normalized [0,1], landmark.y
   final int timestampMs;
   const _PositionSample(this.x, this.y, this.timestampMs);
 }

@@ -12,6 +12,7 @@ import kotlin.math.sqrt
 class CustomGestureClassifier(
     private val customGestures: List<CustomGestureConfig> = emptyList(),
 ) {
+    // Returns the first matching gesture in priority order, or null if nothing matches
     fun classify(
         landmarks: List<NormalizedLandmark>,
         fingerStates: IntArray,
@@ -33,16 +34,16 @@ class CustomGestureClassifier(
         landmarks: List<NormalizedLandmark>,
         fingerStates: IntArray,
     ): GestureMatch? {
-        if (landmarks.size < 21) return null
+        if (landmarks.size < 21) return null // guard against partial detections
 
         val thumbTip = landmarks[4]
         val indexTip = landmarks[8]
 
         val dx = (thumbTip.x() - indexTip.x()).toDouble()
         val dy = (thumbTip.y() - indexTip.y()).toDouble()
-        val distance = sqrt(dx * dx + dy * dy)
+        val distance = sqrt(dx * dx + dy * dy) // Euclidean distance in normalized image space [0,1]
 
-        val threshold = 0.06
+        val threshold = 0.06 // empirically tuned; ~6% of image width for a typical hand size
 
         // Thumb tip and index tip must be close together
         // Middle, ring, pinky should be extended
@@ -51,6 +52,7 @@ class CustomGestureClassifier(
             fingerStates[3] == 1 && // ring extended
             fingerStates[4] == 1    // pinky extended
         ) {
+            // Confidence scales with how close the tips are; clamped so it never drops below 0.5
             val confidence = (1.0 - (distance / threshold)).coerceIn(0.5, 1.0)
             return GestureMatch("ok", confidence)
         }
@@ -90,12 +92,13 @@ class CustomGestureClassifier(
         // FIVE: all extended — MediaPipe should already catch this as Open_Palm
         // but as a fallback:
         if (thumb && index && middle && ring && pinky) {
-            return GestureMatch("five", 0.80)
+            return GestureMatch("five", 0.80) // lower confidence because MediaPipe missed Open_Palm
         }
 
         return null
     }
 
+    // Checks user-defined gestures in order; first exact match wins
     private fun detectCustomGesture(fingerStates: IntArray): GestureMatch? {
         if (fingerStates.size < 5) return null
 
@@ -119,6 +122,7 @@ class CustomGestureClassifier(
             }
 
             if (matches && totalRequired > 0) {
+                // Confidence proportional to specificity: a 5-finger match scores higher than a 2-finger wildcard match
                 val confidence = matchedCount.toDouble() / 5.0
                 return GestureMatch(gesture.name, confidence.coerceIn(0.5, 1.0))
             }
@@ -132,7 +136,7 @@ data class CustomGestureConfig(
     val name: String,
     // [thumb, index, middle, ring, pinky]
     // 0 = closed, 1 = extended, -1 = any
-    val fingerStates: IntArray,
+    val fingerStates: IntArray, // must be exactly length 5; validated by plugin before construction
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -140,6 +144,7 @@ data class CustomGestureConfig(
         return name == other.name && fingerStates.contentEquals(other.fingerStates)
     }
 
+    // contentHashCode() is needed because IntArray.hashCode() uses identity, not contents
     override fun hashCode(): Int {
         var result = name.hashCode()
         result = 31 * result + fingerStates.contentHashCode()
@@ -149,5 +154,5 @@ data class CustomGestureConfig(
 
 data class GestureMatch(
     val gestureName: String,
-    val confidence: Double,
+    val confidence: Double, // [0.0, 1.0]; always >= 0.5 when returned from this classifier
 )

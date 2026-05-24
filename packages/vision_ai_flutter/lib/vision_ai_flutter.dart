@@ -1,3 +1,5 @@
+// Public surface of vision_ai_flutter — re-exports everything callers need.
+// Import only this file; never import src/ paths directly.
 export 'src/painters/hand_bounding_box_painter.dart';
 export 'src/painters/hand_landmark_painter.dart';
 export 'src/painters/face_overlay_painter.dart';

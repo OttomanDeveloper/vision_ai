@@ -6,8 +6,14 @@ import 'package:vision_ai/vision_ai.dart';
 // imageSize comes from VisionResult and changes if the camera resolution changes mid-session.
 class FaceOverlayPainter extends CustomPainter {
   final List<FaceResult> faces;
+
+  /// Stroke color for the bounding rectangle.
   final Color boxColor;
+
+  /// Stroke width in logical pixels.
   final double boxWidth;
+
+  /// Pixel dimensions of the camera image — must match the coordinate space of boundingBox.
   final Size imageSize;
 
   FaceOverlayPainter({
@@ -19,6 +25,7 @@ class FaceOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Guard against imageSize.isEmpty to avoid divide-by-zero in scale computation
     if (faces.isEmpty || imageSize.isEmpty) return;
 
     final paint = Paint()
@@ -26,6 +33,7 @@ class FaceOverlayPainter extends CustomPainter {
       ..strokeWidth = boxWidth
       ..style = PaintingStyle.stroke;
 
+    // Scale factors convert pixel coordinates to canvas logical pixels
     final scaleX = size.width / imageSize.width;
     final scaleY = size.height / imageSize.height;
 
@@ -41,6 +49,7 @@ class FaceOverlayPainter extends CustomPainter {
   }
 
   @override
+  // Identity check is intentional — a new List instance always triggers repaint
   bool shouldRepaint(FaceOverlayPainter oldDelegate) =>
       !identical(faces, oldDelegate.faces);
 }

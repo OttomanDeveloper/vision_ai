@@ -49,8 +49,9 @@ class _CameraState {
     return _CameraState(
       textureId: textureId != null ? textureId() : this.textureId,
       isStarting: isStarting ?? this.isStarting,
-      permissionError:
-          permissionError != null ? permissionError() : this.permissionError,
+      permissionError: permissionError != null
+          ? permissionError()
+          : this.permissionError,
       vision: vision != null ? vision() : this.vision,
     );
   }
@@ -374,9 +375,9 @@ class _CameraPageState extends State<CameraPage> {
     } catch (e) {
       _camera.value = _camera.value.copyWith(isStarting: false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -513,8 +514,9 @@ class _CameraPageState extends State<CameraPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     ElevatedButton.icon(
-                      onPressed:
-                          (cam.isRunning || cam.isStarting) ? null : _start,
+                      onPressed: (cam.isRunning || cam.isStarting)
+                          ? null
+                          : _start,
                       icon: const Icon(Icons.play_arrow),
                       label: Text(cam.isStarting ? 'Starting...' : 'Start'),
                     ),
@@ -574,8 +576,7 @@ class _IdleView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 permissionError!,
-                style:
-                    const TextStyle(color: Colors.redAccent, fontSize: 14),
+                style: const TextStyle(color: Colors.redAccent, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -633,8 +634,10 @@ class _StatsOverlay extends StatelessWidget {
           _line('Faces', '${result.faces.length}'),
           if (hand != null) ...[
             _line('Gesture', _gestureName(hand.gesture)),
-            _line('Confidence',
-                '${(hand.gestureConfidence * 100).toStringAsFixed(0)}%'),
+            _line(
+              'Confidence',
+              '${(hand.gestureConfidence * 100).toStringAsFixed(0)}%',
+            ),
             _line('Side', hand.isLeftHand ? 'Left' : 'Right'),
             _line(
               'Fingers',
@@ -658,48 +661,71 @@ class _StatsOverlay extends StatelessWidget {
             ),
             if (showWorldCoords && hand.worldLandmarks.length >= 21) ...[
               _line(
-                  'Pinch',
-                  '${(hand.worldLandmarks[HandLandmarkIndex.thumbTip].distanceTo(hand.worldLandmarks[HandLandmarkIndex.indexTip]) * 100).toStringAsFixed(1)}cm'),
+                'Pinch',
+                '${(hand.worldLandmarks[HandLandmarkIndex.thumbTip].distanceTo(hand.worldLandmarks[HandLandmarkIndex.indexTip]) * 100).toStringAsFixed(1)}cm',
+              ),
               _line(
-                  'Span',
-                  '${(hand.worldLandmarks[HandLandmarkIndex.thumbTip].distanceTo(hand.worldLandmarks[HandLandmarkIndex.pinkyTip]) * 100).toStringAsFixed(1)}cm'),
+                'Span',
+                '${(hand.worldLandmarks[HandLandmarkIndex.thumbTip].distanceTo(hand.worldLandmarks[HandLandmarkIndex.pinkyTip]) * 100).toStringAsFixed(1)}cm',
+              ),
             ],
             if (lastHandMotion != null)
-              _line('Motion',
-                  '${lastHandMotion!.state.name} ${lastHandMotion!.direction.name} (${lastHandMotion!.speed.toStringAsFixed(2)}/s)'),
+              _line(
+                'Motion',
+                '${lastHandMotion!.state.name} ${lastHandMotion!.direction.name} (${lastHandMotion!.speed.toStringAsFixed(2)}/s)',
+              ),
           ],
           if (lastTwoHandEvent != null)
-            _line('2-Hand',
-                '${lastTwoHandEvent!.gesture.name} (d=${lastTwoHandEvent!.distance.toStringAsFixed(3)})'),
+            _line(
+              '2-Hand',
+              '${lastTwoHandEvent!.gesture.name} (d=${lastTwoHandEvent!.distance.toStringAsFixed(3)})',
+            ),
           if (face != null && face.emotion.isRecognized) ...[
             _line('Emotion', face.emotion.name),
-            _line('Emotion %',
-                '${(face.emotionConfidence * 100).toStringAsFixed(0)}%'),
+            _line(
+              'Emotion %',
+              '${(face.emotionConfidence * 100).toStringAsFixed(0)}%',
+            ),
             if (face.smilingProbability != null)
-              _line('Smile',
-                  '${(face.smilingProbability! * 100).toStringAsFixed(0)}%'),
+              _line(
+                'Smile',
+                '${(face.smilingProbability! * 100).toStringAsFixed(0)}%',
+              ),
           ],
           if (lastBlink != null)
             _line(
-                'Blink', '${lastBlink!.eye.name} (${lastBlink!.durationMs}ms)'),
+              'Blink',
+              '${lastBlink!.eye.name} (${lastBlink!.durationMs}ms)',
+            ),
           if (lastHeadGesture != null)
             _line(
-                'Head',
-                lastHeadGesture!.gesture == HeadGesture.nod
-                    ? 'YES (nod)'
-                    : 'NO (shake)'),
+              'Head',
+              lastHeadGesture!.gesture == HeadGesture.nod
+                  ? 'YES (nod)'
+                  : 'NO (shake)',
+            ),
           if (lastDistance != null)
-            _line('Distance',
-                '${lastDistance!.distanceCm.toStringAsFixed(0)}cm (${lastDistance!.zone.name})'),
+            _line(
+              'Distance',
+              '${lastDistance!.distanceCm.toStringAsFixed(0)}cm (${lastDistance!.zone.name})',
+            ),
           if (lastAttention != null) ...[
-            _line('Attention',
-                '${(lastAttention!.score * 100).toStringAsFixed(0)}% (${lastAttention!.level.name})'),
-            _line('  Eye',
-                '${(lastAttention!.eyeScore * 100).toStringAsFixed(0)}%'),
-            _line('  Orient',
-                '${(lastAttention!.orientationScore * 100).toStringAsFixed(0)}%'),
-            _line('  Stable',
-                '${(lastAttention!.stabilityScore * 100).toStringAsFixed(0)}%'),
+            _line(
+              'Attention',
+              '${(lastAttention!.score * 100).toStringAsFixed(0)}% (${lastAttention!.level.name})',
+            ),
+            _line(
+              '  Eye',
+              '${(lastAttention!.eyeScore * 100).toStringAsFixed(0)}%',
+            ),
+            _line(
+              '  Orient',
+              '${(lastAttention!.orientationScore * 100).toStringAsFixed(0)}%',
+            ),
+            _line(
+              '  Stable',
+              '${(lastAttention!.stabilityScore * 100).toStringAsFixed(0)}%',
+            ),
           ],
         ],
       ),
@@ -707,35 +733,36 @@ class _StatsOverlay extends StatelessWidget {
   }
 
   Widget _line(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('$label: ',
-                style: TextStyle(color: Colors.grey[500], fontSize: 10)),
-            Text(value,
-                style: const TextStyle(color: Colors.white, fontSize: 10)),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 1),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(color: Colors.grey[500], fontSize: 10),
         ),
-      );
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 10)),
+      ],
+    ),
+  );
 
   String _gestureName(Gesture g) => switch (g) {
-        Gesture.fist => 'Fist',
-        Gesture.openHand => 'Open',
-        Gesture.peace => 'Peace',
-        Gesture.thumbsUp => 'ThumbUp',
-        Gesture.thumbsDown => 'ThumbDn',
-        Gesture.pointingUp => 'Point',
-        Gesture.ok => 'OK',
-        Gesture.iLoveYou => 'ILY',
-        Gesture.one => '1',
-        Gesture.two => '2',
-        Gesture.three => '3',
-        Gesture.four => '4',
-        Gesture.five => '5',
-        Gesture.custom => 'Custom',
-        Gesture.none => '-',
-      };
+    Gesture.fist => 'Fist',
+    Gesture.openHand => 'Open',
+    Gesture.peace => 'Peace',
+    Gesture.thumbsUp => 'ThumbUp',
+    Gesture.thumbsDown => 'ThumbDn',
+    Gesture.pointingUp => 'Point',
+    Gesture.ok => 'OK',
+    Gesture.iLoveYou => 'ILY',
+    Gesture.one => '1',
+    Gesture.two => '2',
+    Gesture.three => '3',
+    Gesture.four => '4',
+    Gesture.five => '5',
+    Gesture.custom => 'Custom',
+    Gesture.none => '-',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -755,256 +782,314 @@ class _SettingsSheet extends StatelessWidget {
       expand: false,
       builder: (_, controller) => ValueListenableBuilder<_Settings>(
         valueListenable: settings,
-        builder: (context, s, _) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.all(16),
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[600],
-                  borderRadius: BorderRadius.circular(2),
+        builder: (context, s, _) => SafeArea(
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.all(16),
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[600],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
 
-            // --- Hand Detection ---
-            _card(
-              title: 'HAND DETECTION',
-              icon: Icons.back_hand_outlined,
-              enabled: s.enableHand,
-              children: [
-                _toggle('Enabled', s.enableHand, (v) {
-                  if (!v) {
-                    settings.value = s.copyWith(
-                      enableHand: false,
-                      enableHandMotion: false,
-                      enableTwoHandInteraction: false,
-                      enableGestureFilter: false,
-                      showHandLandmarks: false,
-                      showHandBoundingBox: false,
-                      showGestureLabel: false,
-                      showWorldCoords: false,
-                    );
-                  } else {
-                    settings.value = s.copyWith(
-                      enableHand: true,
-                      showHandLandmarks: true,
-                      showGestureLabel: true,
-                    );
-                  }
-                }),
-                if (s.enableHand) ...[
-                  _toggle('Motion Tracking', s.enableHandMotion,
-                      (v) => settings.value = s.copyWith(enableHandMotion: v)),
-                  _toggle(
+              // --- Hand Detection ---
+              _card(
+                title: 'HAND DETECTION',
+                icon: Icons.back_hand_outlined,
+                enabled: s.enableHand,
+                children: [
+                  _toggle('Enabled', s.enableHand, (v) {
+                    if (!v) {
+                      settings.value = s.copyWith(
+                        enableHand: false,
+                        enableHandMotion: false,
+                        enableTwoHandInteraction: false,
+                        enableGestureFilter: false,
+                        showHandLandmarks: false,
+                        showHandBoundingBox: false,
+                        showGestureLabel: false,
+                        showWorldCoords: false,
+                      );
+                    } else {
+                      settings.value = s.copyWith(
+                        enableHand: true,
+                        showHandLandmarks: true,
+                        showGestureLabel: true,
+                      );
+                    }
+                  }),
+                  if (s.enableHand) ...[
+                    _toggle(
+                      'Motion Tracking',
+                      s.enableHandMotion,
+                      (v) => settings.value = s.copyWith(enableHandMotion: v),
+                    ),
+                    _toggle(
                       'Two-Hand Interaction',
                       s.enableTwoHandInteraction,
-                      (v) => settings.value =
-                          s.copyWith(enableTwoHandInteraction: v)),
-                  const SizedBox(height: 8),
-                  _segmented<int>(
-                    'Max Hands',
-                    {1: '1', 2: '2'},
-                    s.maxHands,
-                    (v) => settings.value = s.copyWith(maxHands: v),
-                  ),
-                  const SizedBox(height: 8),
-                  _slider(
+                      (v) => settings.value = s.copyWith(
+                        enableTwoHandInteraction: v,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _segmented<int>(
+                      'Max Hands',
+                      {1: '1', 2: '2'},
+                      s.maxHands,
+                      (v) => settings.value = s.copyWith(maxHands: v),
+                    ),
+                    const SizedBox(height: 8),
+                    _slider(
                       'Detection Confidence',
                       s.minDetectionConfidence,
                       0.1,
                       1.0,
-                      (v) => settings.value =
-                          s.copyWith(minDetectionConfidence: v)),
-                  _toggle(
+                      (v) => settings.value = s.copyWith(
+                        minDetectionConfidence: v,
+                      ),
+                    ),
+                    _toggle(
                       'Gesture Filter (deny fist/palm)',
                       s.enableGestureFilter,
-                      (v) => settings.value =
-                          s.copyWith(enableGestureFilter: v)),
-                ],
-              ],
-            ),
-
-            // --- Face Detection ---
-            _card(
-              title: 'FACE DETECTION',
-              icon: Icons.face,
-              enabled: s.enableFace,
-              children: [
-                _toggle('Enabled', s.enableFace, (v) {
-                  if (!v) {
-                    settings.value = s.copyWith(
-                      enableFace: false,
-                      detectEmotion: false,
-                      detectLandmarks: false,
-                      detectContours: false,
-                      enableBlinkDetection: false,
-                      enableHeadGesture: false,
-                      enableFaceDistance: false,
-                      enableAttentionScore: false,
-                      enableFaceTracking: false,
-                      faceAccurateMode: false,
-                      showFaceBoundingBox: false,
-                      showFaceContours: false,
-                      showEmotionLabel: false,
-                    );
-                  } else {
-                    settings.value = s.copyWith(
-                      enableFace: true,
-                      detectEmotion: true,
-                      enableFaceTracking: true,
-                      showFaceBoundingBox: true,
-                      showEmotionLabel: true,
-                    );
-                  }
-                }),
-                if (s.enableFace) ...[
-                  _toggle('Emotion Classification', s.detectEmotion,
-                      (v) => settings.value = s.copyWith(detectEmotion: v)),
-                  _toggle('Face Tracking', s.enableFaceTracking,
-                      (v) => settings.value =
-                          s.copyWith(enableFaceTracking: v)),
-                  _toggle('Landmarks (10 points)', s.detectLandmarks,
-                      (v) => settings.value = s.copyWith(detectLandmarks: v)),
-                  _toggle('Contours (disables tracking)', s.detectContours,
-                      (v) => settings.value = s.copyWith(detectContours: v)),
-                  _toggle('Blink Detection', s.enableBlinkDetection,
-                      (v) => settings.value =
-                          s.copyWith(enableBlinkDetection: v)),
-                  _toggle('Head Nod/Shake', s.enableHeadGesture,
-                      (v) => settings.value =
-                          s.copyWith(enableHeadGesture: v)),
-                  _toggle('Distance Estimation', s.enableFaceDistance,
-                      (v) => settings.value =
-                          s.copyWith(enableFaceDistance: v)),
-                  _toggle('Attention Scoring', s.enableAttentionScore,
-                      (v) => settings.value =
-                          s.copyWith(enableAttentionScore: v)),
-                  const SizedBox(height: 8),
-                  _slider('Min Face Size', s.minFaceSize, 0.05, 0.5,
-                      (v) => settings.value = s.copyWith(minFaceSize: v)),
-                  _toggle('Accurate Mode (slower)', s.faceAccurateMode,
-                      (v) => settings.value =
-                          s.copyWith(faceAccurateMode: v)),
-                ],
-              ],
-            ),
-
-            // --- Camera ---
-            _card(
-              title: 'CAMERA',
-              icon: Icons.videocam_outlined,
-              children: [
-                _segmented<CameraFacing>(
-                  'Camera',
-                  {CameraFacing.front: 'Front', CameraFacing.back: 'Back'},
-                  s.cameraFacing,
-                  (v) => settings.value = s.copyWith(cameraFacing: v),
-                ),
-                const SizedBox(height: 12),
-                _segmented<AnalysisResolution>(
-                  'Resolution',
-                  {
-                    AnalysisResolution.low: 'Low',
-                    AnalysisResolution.medium: 'Medium',
-                    AnalysisResolution.high: 'High',
-                  },
-                  s.resolution,
-                  (v) => settings.value = s.copyWith(resolution: v),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Max Results/sec',
-                        style: TextStyle(fontSize: 14)),
-                    Text(
-                      s.maxResultsPerSecond == 0
-                          ? 'No limit'
-                          : '${s.maxResultsPerSecond}/sec',
-                      style:
-                          TextStyle(color: Colors.grey[400], fontSize: 13),
+                      (v) =>
+                          settings.value = s.copyWith(enableGestureFilter: v),
                     ),
                   ],
-                ),
-                Slider(
-                  value: s.maxResultsPerSecond.toDouble(),
-                  min: 0,
-                  max: 30,
-                  divisions: 6,
-                  onChanged: (v) => settings.value =
-                      s.copyWith(maxResultsPerSecond: v.round()),
-                ),
-                Text(
-                  s.maxResultsPerSecond == 0
-                      ? 'No throttle — smoothest landmark tracking'
-                      : s.maxResultsPerSecond <= 5
-                          ? 'Labels only — lightest load'
-                          : s.maxResultsPerSecond <= 15
-                              ? 'Balanced — smooth labels'
-                              : 'Near-full rate',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 11),
-                ),
-              ],
-            ),
+                ],
+              ),
 
-            // --- Overlays ---
-            _card(
-              title: 'OVERLAYS',
-              icon: Icons.layers_outlined,
-              children: [
-                if (s.enableHand) ...[
-                  _toggle('Hand Landmarks', s.showHandLandmarks,
-                      (v) => settings.value =
-                          s.copyWith(showHandLandmarks: v)),
-                  _toggle('Hand Bounding Box', s.showHandBoundingBox,
-                      (v) => settings.value =
-                          s.copyWith(showHandBoundingBox: v)),
-                  _toggle('Gesture Label', s.showGestureLabel,
-                      (v) => settings.value =
-                          s.copyWith(showGestureLabel: v)),
-                  _toggle('World Coords (cm)', s.showWorldCoords,
-                      (v) => settings.value =
-                          s.copyWith(showWorldCoords: v)),
+              // --- Face Detection ---
+              _card(
+                title: 'FACE DETECTION',
+                icon: Icons.face,
+                enabled: s.enableFace,
+                children: [
+                  _toggle('Enabled', s.enableFace, (v) {
+                    if (!v) {
+                      settings.value = s.copyWith(
+                        enableFace: false,
+                        detectEmotion: false,
+                        detectLandmarks: false,
+                        detectContours: false,
+                        enableBlinkDetection: false,
+                        enableHeadGesture: false,
+                        enableFaceDistance: false,
+                        enableAttentionScore: false,
+                        enableFaceTracking: false,
+                        faceAccurateMode: false,
+                        showFaceBoundingBox: false,
+                        showFaceContours: false,
+                        showEmotionLabel: false,
+                      );
+                    } else {
+                      settings.value = s.copyWith(
+                        enableFace: true,
+                        detectEmotion: true,
+                        enableFaceTracking: true,
+                        showFaceBoundingBox: true,
+                        showEmotionLabel: true,
+                      );
+                    }
+                  }),
+                  if (s.enableFace) ...[
+                    _toggle(
+                      'Emotion Classification',
+                      s.detectEmotion,
+                      (v) => settings.value = s.copyWith(detectEmotion: v),
+                    ),
+                    _toggle(
+                      'Face Tracking',
+                      s.enableFaceTracking,
+                      (v) => settings.value = s.copyWith(enableFaceTracking: v),
+                    ),
+                    _toggle(
+                      'Landmarks (10 points)',
+                      s.detectLandmarks,
+                      (v) => settings.value = s.copyWith(detectLandmarks: v),
+                    ),
+                    _toggle(
+                      'Contours (disables tracking)',
+                      s.detectContours,
+                      (v) => settings.value = s.copyWith(detectContours: v),
+                    ),
+                    _toggle(
+                      'Blink Detection',
+                      s.enableBlinkDetection,
+                      (v) =>
+                          settings.value = s.copyWith(enableBlinkDetection: v),
+                    ),
+                    _toggle(
+                      'Head Nod/Shake',
+                      s.enableHeadGesture,
+                      (v) => settings.value = s.copyWith(enableHeadGesture: v),
+                    ),
+                    _toggle(
+                      'Distance Estimation',
+                      s.enableFaceDistance,
+                      (v) => settings.value = s.copyWith(enableFaceDistance: v),
+                    ),
+                    _toggle(
+                      'Attention Scoring',
+                      s.enableAttentionScore,
+                      (v) =>
+                          settings.value = s.copyWith(enableAttentionScore: v),
+                    ),
+                    const SizedBox(height: 8),
+                    _slider(
+                      'Min Face Size',
+                      s.minFaceSize,
+                      0.05,
+                      0.5,
+                      (v) => settings.value = s.copyWith(minFaceSize: v),
+                    ),
+                    _toggle(
+                      'Accurate Mode (slower)',
+                      s.faceAccurateMode,
+                      (v) => settings.value = s.copyWith(faceAccurateMode: v),
+                    ),
+                  ],
                 ],
-                if (s.enableFace) ...[
-                  _toggle('Face Bounding Box', s.showFaceBoundingBox,
-                      (v) => settings.value =
-                          s.copyWith(showFaceBoundingBox: v)),
-                  _toggle('Face Contours', s.showFaceContours,
-                      (v) => settings.value =
-                          s.copyWith(showFaceContours: v)),
-                  _toggle('Emotion Label', s.showEmotionLabel,
-                      (v) => settings.value =
-                          s.copyWith(showEmotionLabel: v)),
-                ],
-                if (!s.enableHand && !s.enableFace)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Enable hand or face detection to see overlay options.',
-                      style:
-                          TextStyle(color: Colors.grey[600], fontSize: 12),
+              ),
+
+              // --- Camera ---
+              _card(
+                title: 'CAMERA',
+                icon: Icons.videocam_outlined,
+                children: [
+                  _segmented<CameraFacing>(
+                    'Camera',
+                    {CameraFacing.front: 'Front', CameraFacing.back: 'Back'},
+                    s.cameraFacing,
+                    (v) => settings.value = s.copyWith(cameraFacing: v),
+                  ),
+                  const SizedBox(height: 12),
+                  _segmented<AnalysisResolution>(
+                    'Resolution',
+                    {
+                      AnalysisResolution.low: 'Low',
+                      AnalysisResolution.medium: 'Medium',
+                      AnalysisResolution.high: 'High',
+                    },
+                    s.resolution,
+                    (v) => settings.value = s.copyWith(resolution: v),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Max Results/sec',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      Text(
+                        s.maxResultsPerSecond == 0
+                            ? 'No limit'
+                            : '${s.maxResultsPerSecond}/sec',
+                        style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  Slider(
+                    value: s.maxResultsPerSecond.toDouble(),
+                    min: 0,
+                    max: 30,
+                    divisions: 6,
+                    onChanged: (v) => settings.value = s.copyWith(
+                      maxResultsPerSecond: v.round(),
                     ),
                   ),
-                _toggle('Stats Overlay', s.showStats,
-                    (v) => settings.value = s.copyWith(showStats: v)),
-              ],
-            ),
+                  Text(
+                    s.maxResultsPerSecond == 0
+                        ? 'No throttle — smoothest landmark tracking'
+                        : s.maxResultsPerSecond <= 5
+                        ? 'Labels only — lightest load'
+                        : s.maxResultsPerSecond <= 15
+                        ? 'Balanced — smooth labels'
+                        : 'Near-full rate',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                  ),
+                ],
+              ),
 
-            const SizedBox(height: 8),
-            Text(
-              'Detection and camera changes require Restart. '
-              'Overlay toggles apply instantly.',
-              style: TextStyle(color: Colors.grey[600], fontSize: 11),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-          ],
+              // --- Overlays ---
+              _card(
+                title: 'OVERLAYS',
+                icon: Icons.layers_outlined,
+                children: [
+                  if (s.enableHand) ...[
+                    _toggle(
+                      'Hand Landmarks',
+                      s.showHandLandmarks,
+                      (v) => settings.value = s.copyWith(showHandLandmarks: v),
+                    ),
+                    _toggle(
+                      'Hand Bounding Box',
+                      s.showHandBoundingBox,
+                      (v) =>
+                          settings.value = s.copyWith(showHandBoundingBox: v),
+                    ),
+                    _toggle(
+                      'Gesture Label',
+                      s.showGestureLabel,
+                      (v) => settings.value = s.copyWith(showGestureLabel: v),
+                    ),
+                    _toggle(
+                      'World Coords (cm)',
+                      s.showWorldCoords,
+                      (v) => settings.value = s.copyWith(showWorldCoords: v),
+                    ),
+                  ],
+                  if (s.enableFace) ...[
+                    _toggle(
+                      'Face Bounding Box',
+                      s.showFaceBoundingBox,
+                      (v) =>
+                          settings.value = s.copyWith(showFaceBoundingBox: v),
+                    ),
+                    _toggle(
+                      'Face Contours',
+                      s.showFaceContours,
+                      (v) => settings.value = s.copyWith(showFaceContours: v),
+                    ),
+                    _toggle(
+                      'Emotion Label',
+                      s.showEmotionLabel,
+                      (v) => settings.value = s.copyWith(showEmotionLabel: v),
+                    ),
+                  ],
+                  if (!s.enableHand && !s.enableFace)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        'Enable hand or face detection to see overlay options.',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ),
+                  _toggle(
+                    'Stats Overlay',
+                    s.showStats,
+                    (v) => settings.value = s.copyWith(showStats: v),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+              Text(
+                'Detection and camera changes require Restart. '
+                'Overlay toggles apply instantly.',
+                style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -1032,7 +1117,11 @@ class _SettingsSheet extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(icon, size: 16, color: enabled ? Colors.white70 : Colors.grey[600]),
+                  Icon(
+                    icon,
+                    size: 16,
+                    color: enabled ? Colors.white70 : Colors.grey[600],
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     title,
@@ -1060,67 +1149,76 @@ class _SettingsSheet extends StatelessWidget {
   }
 
   static Widget _toggle(
-          String label, bool value, ValueChanged<bool> onChanged) =>
-      SwitchListTile(
-        title: Text(label, style: const TextStyle(fontSize: 14)),
-        value: value,
-        onChanged: onChanged,
-        dense: true,
-        contentPadding: EdgeInsets.zero,
-      );
+    String label,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) => SwitchListTile(
+    title: Text(label, style: const TextStyle(fontSize: 14)),
+    value: value,
+    onChanged: onChanged,
+    dense: true,
+    contentPadding: EdgeInsets.zero,
+  );
 
-  static Widget _slider(String label, double value, double min, double max,
-          ValueChanged<double> onChanged) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: const TextStyle(fontSize: 14)),
-              Text(value.toStringAsFixed(2),
-                  style: TextStyle(color: Colors.grey[400], fontSize: 13)),
-            ],
-          ),
-          Slider(
-            value: value,
-            min: min,
-            max: max,
-            divisions: ((max - min) * 20).round(),
-            onChanged: onChanged,
-          ),
-        ],
-      );
-
-  static Widget _segmented<T>(String label, Map<T, String> options, T selected,
-          ValueChanged<T> onChanged) =>
+  static Widget _slider(
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
       Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: SegmentedButton<T>(
-                  segments: options.entries
-                      .map((e) =>
-                          ButtonSegment(value: e.key, label: Text(e.value)))
-                      .toList(),
-                  selected: {selected},
-                  onSelectionChanged: (s) => onChanged(s.first),
-                  style: ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                    textStyle: WidgetStatePropertyAll(
-                      const TextStyle(fontSize: 12),
-                    ),
-                  ),
+          Text(
+            value.toStringAsFixed(2),
+            style: TextStyle(color: Colors.grey[400], fontSize: 13),
+          ),
+        ],
+      ),
+      Slider(
+        value: value,
+        min: min,
+        max: max,
+        divisions: ((max - min) * 20).round(),
+        onChanged: onChanged,
+      ),
+    ],
+  );
+
+  static Widget _segmented<T>(
+    String label,
+    Map<T, String> options,
+    T selected,
+    ValueChanged<T> onChanged,
+  ) => Row(
+    children: [
+      Text(label, style: const TextStyle(fontSize: 14)),
+      const SizedBox(width: 8),
+      Expanded(
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SegmentedButton<T>(
+              segments: options.entries
+                  .map((e) => ButtonSegment(value: e.key, label: Text(e.value)))
+                  .toList(),
+              selected: {selected},
+              onSelectionChanged: (s) => onChanged(s.first),
+              style: ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                textStyle: WidgetStatePropertyAll(
+                  const TextStyle(fontSize: 12),
                 ),
               ),
             ),
           ),
-        ],
-      );
-
+        ),
+      ),
+    ],
+  );
 }

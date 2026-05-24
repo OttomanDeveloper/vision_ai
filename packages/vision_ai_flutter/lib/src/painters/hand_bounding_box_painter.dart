@@ -6,8 +6,14 @@ import 'package:vision_ai/vision_ai.dart';
 // (same as HandLandmarkPainter) since Texture stretches to fill its box.
 class HandBoundingBoxPainter extends CustomPainter {
   final List<HandResult> hands;
+
+  /// Stroke color for the bounding rectangle.
   final Color boxColor;
+
+  /// Stroke width in logical pixels.
   final double boxWidth;
+
+  /// When true, the box is mirrored horizontally to match a flipped preview.
   final bool mirrored;
 
   HandBoundingBoxPainter({
@@ -30,6 +36,7 @@ class HandBoundingBoxPainter extends CustomPainter {
       final bbox = hand.boundingBox;
       if (bbox == null) continue;
 
+      // Mirror by swapping left/right edges, then re-scaling — not by negating x
       final left = mirrored ? (1.0 - bbox.right) : bbox.left;
       final right = mirrored ? (1.0 - bbox.left) : bbox.right;
 
@@ -44,6 +51,7 @@ class HandBoundingBoxPainter extends CustomPainter {
   }
 
   @override
+  // Identity check is intentional — a new List instance always triggers repaint
   bool shouldRepaint(HandBoundingBoxPainter oldDelegate) =>
       !identical(hands, oldDelegate.hands);
 }

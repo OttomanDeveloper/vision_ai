@@ -11,7 +11,11 @@ import '../styles/overlay_style.dart';
 class HandLandmarkPainter extends CustomPainter {
   final List<HandResult> hands;
   final LandmarkStyle style;
+
+  /// When true, landmarks are flipped horizontally to match a mirrored camera preview.
   final bool mirrored;
+
+  /// Kept for API compatibility — not used for scaling because Texture fills its box exactly.
   final Size imageSize;
 
   HandLandmarkPainter({
@@ -29,7 +33,7 @@ class HandLandmarkPainter extends CustomPainter {
       ..color = style.lineColor
       ..strokeWidth = style.lineWidth
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round; // rounds joints between connection segments
 
     final dotPaint = Paint()
       ..color = style.dotColor
@@ -38,9 +42,11 @@ class HandLandmarkPainter extends CustomPainter {
     for (final hand in hands) {
       if (hand.landmarks.isEmpty) continue;
 
+      // Draw skeleton connections before dots so dots sit on top of lines
       for (final connection in HandLandmarkIndex.connections) {
         final from = connection[0];
         final to = connection[1];
+        // Guard against partial landmark sets — some frames may have fewer than 21
         if (from >= hand.landmarks.length || to >= hand.landmarks.length) {
           continue;
         }
@@ -61,13 +67,14 @@ class HandLandmarkPainter extends CustomPainter {
     // Landmarks are normalized [0,1]. Texture widget stretches to fill,
     // so we map directly to canvas dimensions.
     final x = mirrored
-        ? (1.0 - landmark.x) * size.width
+        ? (1.0 - landmark.x) * size.width  // flip around vertical axis
         : landmark.x * size.width;
     final y = landmark.y * size.height;
     return Offset(x, y);
   }
 
   @override
+  // Identity check is intentional — a new List instance always triggers repaint
   bool shouldRepaint(HandLandmarkPainter oldDelegate) =>
       !identical(hands, oldDelegate.hands);
 }

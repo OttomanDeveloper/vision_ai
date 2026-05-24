@@ -6,19 +6,24 @@ import '../styles/overlay_style.dart';
 class EmotionIndicator extends StatelessWidget {
   final FaceResult face;
   final LabelStyle style;
+
+  /// When true, appends the confidence percentage to the emotion name.
   final bool showConfidence;
 
   const EmotionIndicator({
     super.key,
     required this.face,
+    // Blue distinguishes the emotion badge from the gesture badge (dark/default)
     this.style = const LabelStyle(backgroundColor: Colors.blue),
     this.showConfidence = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Collapse to nothing when emotion is none/unrecognized — avoids an empty badge
     if (!face.emotion.isRecognized) return const SizedBox.shrink();
 
+    // toStringAsFixed(0) rounds to nearest integer percent — e.g. "87%"
     final confidence = (face.emotionConfidence * 100).toStringAsFixed(0);
     final text = showConfidence
         ? '${_displayName(face.emotion)} $confidence%'
@@ -41,6 +46,7 @@ class EmotionIndicator extends StatelessWidget {
     );
   }
 
+  // Emoji suffix gives quick visual feedback without requiring text comprehension
   static String _displayName(Emotion emotion) => switch (emotion) {
         Emotion.happy => 'HAPPY 😊',
         Emotion.sad => 'SAD 😢',
@@ -49,6 +55,6 @@ class EmotionIndicator extends StatelessWidget {
         Emotion.disgusted => 'DISGUSTED 🤢',
         Emotion.fearful => 'FEARFUL 😨',
         Emotion.neutral => 'NEUTRAL 😐',
-        Emotion.none => '',
+        Emotion.none => '', // unreachable — guarded by isRecognized above
       };
 }

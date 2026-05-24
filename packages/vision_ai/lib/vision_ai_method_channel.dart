@@ -21,9 +21,12 @@ import 'src/models/vision_result.dart';
 import 'vision_ai_platform_interface.dart';
 
 class VisionAiMethodChannel extends VisionAiPlatform {
+  // Commands (start, stop, config updates) are fire-and-reply on this channel.
   final _commandChannel = const MethodChannel('com.visionai/commands');
+  // Results stream continuously from native; one-directional native→Dart.
   final _resultChannel = const EventChannel('com.visionai/results');
 
+  // Lazily created; null until the first listener subscribes via [resultStream].
   Stream<VisionResult>? _resultStreamCache;
 
   @override
@@ -48,6 +51,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         'minDetectionConfidence': handConfig.minDetectionConfidence,
         'minPresenceConfidence': handConfig.minPresenceConfidence,
         'minTrackingConfidence': handConfig.minTrackingConfidence,
+        // Each custom gesture serializes its fingerStates in thumb→pinky order.
         'customGestures': handConfig.customGestures
             .map(
               (g) => {
@@ -74,6 +78,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         'accurateMode': faceConfig.accurateMode,
       },
     });
+    // result! is safe: native always returns an int on success, throws on failure.
     return result!;
   }
 
@@ -88,6 +93,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         'minDetectionConfidence': config.minDetectionConfidence,
         'minPresenceConfidence': config.minPresenceConfidence,
         'minTrackingConfidence': config.minTrackingConfidence,
+        // Full replacement — native discards old custom gesture list entirely.
         'customGestures': config.customGestures
             .map(
               (g) => {
@@ -128,6 +134,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
 
   @override
   Stream<VisionResult> get resultStream {
+    // Cache ensures all Dart listeners share a single EventChannel subscription.
     _resultStreamCache ??=
         _resultChannel.receiveBroadcastStream().map(_parseResult);
     return _resultStreamCache!;
@@ -138,23 +145,28 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     return VisionResult(
       hands: _parseHandList(map['hands'] as List?),
       faces: _parseFaceList(map['faces'] as List?),
+      // Milliseconds since epoch at the moment native captured the frame.
       timestampMs: map['timestamp'] as int,
       imageSize: Size(
         (map['imageWidth'] as int).toDouble(),
         (map['imageHeight'] as int).toDouble(),
       ),
+      // Time spent in the ML inference step only, not including camera capture.
       inferenceTimeMs: map['inferenceTime'] as int,
     );
   }
 
   List<HandResult> _parseHandList(List? raw) {
+    // Returns const empty to avoid allocating when no hands are detected.
     if (raw == null || raw.isEmpty) return const [];
     return raw.map((e) => _parseHand(e as Map)).toList();
   }
 
   HandResult _parseHand(Map map) {
+    // Float64List from Kotlin DoubleArray; stride-3 packed as [x, y, z, x, y, z, ...].
     final landmarkData = map['landmarks'] as Float64List;
     final worldData = map['worldLandmarks'] as Float64List;
+    // int list; native sends 1=extended, 0=closed only (never -1 in results).
     final fingerData = map['fingerStates'] as List;
 
     return HandResult(
@@ -166,6 +178,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
       isLeftHand: map['isLeftHand'] as bool,
       handednessConfidence: (map['handednessConfidence'] as num).toDouble(),
       fingerStates: {
+        // Finger.values order matches thumb→pinky, matching native array packing.
         for (var i = 0; i < Finger.values.length; i++)
           Finger.values[i]: (fingerData[i] as int) == 1
               ? FingerState.extended
@@ -175,18 +188,23 @@ class VisionAiMethodChannel extends VisionAiPlatform {
   }
 
   List<FaceResult> _parseFaceList(List? raw) {
+    // Returns const empty to avoid allocating when no faces are detected.
     if (raw == null || raw.isEmpty) return const [];
     return raw.map((e) => _parseFace(e as Map)).toList();
   }
 
   FaceResult _parseFace(Map map) {
+    // Float64List; index order matches Emotion enum declaration (angry=0 … neutral=6).
     final scores = map['emotionScores'] as Float64List;
+    // [left, top, right, bottom] in image pixel coordinates from ML Kit.
     final bbox = map['boundingBox'] as List;
+    // [X=pitch, Y=yaw, Z=roll] in degrees; positive values defined per ML Kit convention.
     final euler = map['eulerAngles'] as List;
 
     return FaceResult(
       emotion: _parseEmotion(map['emotion'] as String),
       emotionScores: {
+        // Explicit mapping keeps enum-to-index contract visible and safe to refactor.
         Emotion.angry: scores[0],
         Emotion.disgusted: scores[1],
         Emotion.fearful: scores[2],
@@ -205,11 +223,13 @@ class VisionAiMethodChannel extends VisionAiPlatform {
       headEulerAngleX: (euler[0] as num).toDouble(),
       headEulerAngleY: (euler[1] as num).toDouble(),
       headEulerAngleZ: (euler[2] as num).toDouble(),
+      // Nullable — only present when ML Kit's classification model is active.
       smilingProbability: (map['smilingProbability'] as num?)?.toDouble(),
       leftEyeOpenProbability:
           (map['leftEyeOpenProbability'] as num?)?.toDouble(),
       rightEyeOpenProbability:
           (map['rightEyeOpenProbability'] as num?)?.toDouble(),
+      // -1 when tracking is disabled or face was first detected this frame.
       trackingId: (map['trackingId'] as int?) ?? -1,
       landmarks: _parseLandmarkPoints(map['landmarkPoints']),
       contours: _parseContours(map),
@@ -218,11 +238,13 @@ class VisionAiMethodChannel extends VisionAiPlatform {
 
   static List<Offset>? _parseLandmarkPoints(dynamic raw) {
     if (raw == null) return null;
+    // Float64List branch avoids a redundant copy when native sends typed data directly.
     final Float64List pts = raw is Float64List
         ? raw
         : Float64List.fromList(
             (raw as List).map((e) => (e as num).toDouble()).toList());
     final list = <Offset>[];
+    // Stride-2 packed: [x0, y0, x1, y1, ...] in image pixel coordinates.
     for (var i = 0; i < pts.length; i += 2) {
       list.add(Offset(pts[i], pts[i + 1]));
     }
@@ -231,9 +253,11 @@ class VisionAiMethodChannel extends VisionAiPlatform {
 
   static List<List<Offset>>? _parseContours(Map map) {
     final points = map['contourPoints'];
+    // contourSizes tells how many points belong to each contour group.
     final sizes = map['contourSizes'] as List?;
     if (points == null || sizes == null) return null;
 
+    // Float64List branch avoids a redundant copy when native sends typed data directly.
     final Float64List pts = points is Float64List
         ? points
         : Float64List.fromList(
@@ -244,15 +268,18 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     for (final size in sizes) {
       final count = size as int;
       final group = <Offset>[];
+      // Each point occupies two consecutive float64 values (x, y).
       for (var i = 0; i < count; i++) {
         group.add(Offset(pts[offset], pts[offset + 1]));
         offset += 2;
       }
+      // Skip degenerate empty contour groups that native may send.
       if (group.isNotEmpty) contours.add(group);
     }
     return contours;
   }
 
+  // Stride-3 unpacking: native packs as [x, y, z, x, y, z, ...] for all 21 points.
   static List<NormalizedLandmark> _toLandmarks(Float64List data) {
     final landmarks = <NormalizedLandmark>[];
     for (var i = 0; i < data.length; i += 3) {
@@ -261,6 +288,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     return landmarks;
   }
 
+  // Stride-3 unpacking: same layout as _toLandmarks but values are in meters.
   static List<WorldLandmark> _toWorldLandmarks(Float64List data) {
     final landmarks = <WorldLandmark>[];
     for (var i = 0; i < data.length; i += 3) {
@@ -269,6 +297,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     return landmarks;
   }
 
+  // Maps native MediaPipe string labels to the Dart enum; unknown labels → custom.
   static Gesture _parseGesture(String name) => switch (name) {
         'Closed_Fist' => Gesture.fist,
         'Open_Palm' => Gesture.openHand,
@@ -287,6 +316,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
         _ => Gesture.custom,
       };
 
+  // Maps native emotion label strings; unrecognized labels → none (classifier not run).
   static Emotion _parseEmotion(String name) => switch (name) {
         'happy' => Emotion.happy,
         'sad' => Emotion.sad,
@@ -302,9 +332,11 @@ class VisionAiMethodChannel extends VisionAiPlatform {
   static int _fingerStateToNative(FingerState? state) => switch (state) {
         FingerState.extended => 1,
         FingerState.closed => 0,
+        // null means the finger was omitted from CustomGesture.fingerStates → wildcard.
         null => -1,
       };
 
+  // Omits keys entirely when lists/maps are empty to avoid no-op native processing.
   static Map<String, Object> _serializeGestureFilters(HandConfig config) {
     final map = <String, Object>{};
     if (config.allowedGestures != null && config.allowedGestures!.isNotEmpty) {
@@ -317,6 +349,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     }
     if (config.gestureThresholds != null &&
         config.gestureThresholds!.isNotEmpty) {
+      // Native map key is the string label, value is the double threshold [0.0, 1.0].
       map['gestureThresholds'] = {
         for (final e in config.gestureThresholds!.entries)
           _gestureToNative(e.key): e.value,
@@ -325,6 +358,7 @@ class VisionAiMethodChannel extends VisionAiPlatform {
     return map;
   }
 
+  // Inverse of _parseGesture; must stay in sync whenever new gestures are added.
   static String _gestureToNative(Gesture g) => switch (g) {
         Gesture.fist => 'Closed_Fist',
         Gesture.openHand => 'Open_Palm',

@@ -15,20 +15,21 @@ import java.nio.ByteOrder
 // pool goes out of scope; recycling on a different thread while inference is running will crash.
 class BitmapPool {
 
-    private var rawBitmap: Bitmap? = null
-    private var rotatedBitmap: Bitmap? = null
-    private var faceCropBitmap: Bitmap? = null
-    private var faceResizedBitmap: Bitmap? = null
-    private var tfliteBuffer: ByteBuffer? = null
-    private var pixelArray: IntArray? = null
+    private var rawBitmap: Bitmap? = null         // full-stride frame from ImageProxy (may include padding columns)
+    private var rotatedBitmap: Bitmap? = null     // frame after rotation+mirror; handed to ML processors
+    private var faceCropBitmap: Bitmap? = null    // cropped region around a detected face
+    private var faceResizedBitmap: Bitmap? = null // face crop scaled to model input size
+    private var tfliteBuffer: ByteBuffer? = null  // direct ByteBuffer for TFLite input tensor; nativeOrder required
+    private var pixelArray: IntArray? = null      // intermediate ARGB pixels for preprocessing; avoids per-frame int[] alloc
 
-    private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
-    private val matrix = Matrix()
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG) // bilinear filtering during scale/rotate for better quality
+    private val matrix = Matrix() // reused across drawRotated calls to avoid allocation
 
+    // Returns a bitmap of exactly (width × height) ARGB_8888; recycles if dimensions changed
     fun getRawBitmap(width: Int, height: Int): Bitmap {
         val existing = rawBitmap
         if (existing != null && existing.width == width && existing.height == height && !existing.isRecycled) {
-            existing.eraseColor(0)
+            existing.eraseColor(0) // clear stale pixel data from last frame
             return existing
         }
         existing?.recycle()
@@ -37,6 +38,7 @@ class BitmapPool {
         return bmp
     }
 
+    // Returns a bitmap sized for the post-rotation output; dimensions swap for 90°/270° rotations
     fun getRotatedBitmap(width: Int, height: Int): Bitmap {
         val existing = rotatedBitmap
         if (existing != null && existing.width == width && existing.height == height && !existing.isRecycled) {
@@ -49,6 +51,9 @@ class BitmapPool {
         return bmp
     }
 
+    // Applies rotation and optional horizontal mirror to source, writing into the pooled rotated bitmap.
+    // srcWidth/srcHeight define the valid region inside source (may be smaller than source.width due to row padding).
+    // mirror=true flips horizontally, which corrects the selfie-camera mirroring for front-facing use.
     fun drawRotated(source: Bitmap, srcWidth: Int, srcHeight: Int, rotationDegrees: Int, mirror: Boolean): Bitmap {
         matrix.reset()
         if (rotationDegrees != 0) {
@@ -58,6 +63,7 @@ class BitmapPool {
             matrix.postScale(-1f, 1f)
         }
 
+        // After rotation, logical width and height swap for 90°/270°
         val dstWidth: Int
         val dstHeight: Int
         if (rotationDegrees == 90 || rotationDegrees == 270) {
@@ -78,7 +84,7 @@ class BitmapPool {
         if (rotationDegrees != 0) matrix.postRotate(rotationDegrees.toFloat())
         if (mirror) matrix.postScale(-1f, 1f)
 
-        // Recalculate proper translation
+        // Map all four corners to find the true min offset after transform, then translate back to origin
         val testPts = floatArrayOf(0f, 0f, srcWidth.toFloat(), 0f, 0f, srcHeight.toFloat(), srcWidth.toFloat(), srcHeight.toFloat())
         matrix.mapPoints(testPts)
         var minX = Float.MAX_VALUE
@@ -87,7 +93,7 @@ class BitmapPool {
             if (testPts[i] < minX) minX = testPts[i]
             if (testPts[i + 1] < minY) minY = testPts[i + 1]
         }
-        matrix.postTranslate(-minX, -minY)
+        matrix.postTranslate(-minX, -minY) // shifts result so top-left corner is at (0,0)
 
         val dst = getRotatedBitmap(dstWidth, dstHeight)
         val canvas = Canvas(dst)
@@ -95,6 +101,7 @@ class BitmapPool {
         return dst
     }
 
+    // Crops a region from source and draws it into a pooled bitmap; pads bounding box by the caller
     fun getCropBitmap(source: Bitmap, left: Int, top: Int, width: Int, height: Int): Bitmap {
         val existing = faceCropBitmap
         if (existing != null && existing.width == width && existing.height == height && !existing.isRecycled) {
@@ -111,6 +118,7 @@ class BitmapPool {
         return dst
     }
 
+    // Scales source to (targetWidth × targetHeight) using bilinear filtering; for TFLite input preparation
     fun getResizedBitmap(source: Bitmap, targetWidth: Int, targetHeight: Int): Bitmap {
         val existing = faceResizedBitmap
         if (existing != null && existing.width == targetWidth && existing.height == targetHeight && !existing.isRecycled) {
@@ -127,18 +135,21 @@ class BitmapPool {
         return dst
     }
 
+    // Returns a direct ByteBuffer sized for a TFLite input tensor; nativeOrder matches TFLite's expectation
+    // size = 4 * width * height * channels (float32 per channel)
     fun getTfliteBuffer(size: Int): ByteBuffer {
         val existing = tfliteBuffer
         if (existing != null && existing.capacity() == size) {
-            existing.rewind()
+            existing.rewind() // reset position so TFLite reads from the start
             return existing
         }
-        val buf = ByteBuffer.allocateDirect(size)
+        val buf = ByteBuffer.allocateDirect(size) // direct allocation bypasses JVM heap; required for TFLite
         buf.order(ByteOrder.nativeOrder())
         tfliteBuffer = buf
         return buf
     }
 
+    // Returns an int array for getPixels(); reused to avoid per-frame IntArray allocation during preprocessing
     fun getPixelArray(size: Int): IntArray {
         val existing = pixelArray
         if (existing != null && existing.size == size) return existing
@@ -147,6 +158,7 @@ class BitmapPool {
         return arr
     }
 
+    // Must be called on the analysis thread before this pool is garbage collected
     fun release() {
         rawBitmap?.recycle()
         rotatedBitmap?.recycle()
@@ -156,7 +168,7 @@ class BitmapPool {
         rotatedBitmap = null
         faceCropBitmap = null
         faceResizedBitmap = null
-        tfliteBuffer = null
+        tfliteBuffer = null // direct ByteBuffer is freed by the JVM; nulling allows GC to reclaim faster
         pixelArray = null
     }
 }

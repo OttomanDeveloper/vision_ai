@@ -9,7 +9,7 @@ import io.flutter.plugin.common.EventChannel
 // thread before posting, so we never queue up redundant main-thread work at high frame rates.
 class ResultAggregator(
     private val mainHandler: Handler,
-    private val eventSinkProvider: () -> EventChannel.EventSink?,
+    private val eventSinkProvider: () -> EventChannel.EventSink?, // lambda avoids holding a stale sink reference
     maxResultsPerSecond: Int = 0,
 ) {
     // Minimum time between emissions in ms. 0 = no throttle (emit every frame).
@@ -19,17 +19,18 @@ class ResultAggregator(
         0L
     }
 
+    // Tracks when the last result was posted; read+written only on the analysis thread (no sync needed)
     private var lastEmitTime: Long = 0L
 
     fun emit(
         handResults: List<Map<String, Any?>>,
         faceResults: List<Map<String, Any?>>,
-        timestampMs: Long,
-        inferenceTimeMs: Long,
-        imageWidth: Int,
+        timestampMs: Long,    // ms since boot (SystemClock.uptimeMillis), not wall clock
+        inferenceTimeMs: Long, // total ms spent in FrameProcessor.analyze for this frame
+        imageWidth: Int,       // display-orientation width (already swapped for 90°/270° rotation)
         imageHeight: Int,
     ) {
-        // Skip this result if we emitted too recently
+        // Drop frame early on the analysis thread rather than posting a no-op to the main thread
         if (minIntervalMs > 0) {
             val now = SystemClock.uptimeMillis()
             if (now - lastEmitTime < minIntervalMs) return
@@ -45,6 +46,7 @@ class ResultAggregator(
             "faces" to faceResults,
         )
 
+        // eventSinkProvider() is evaluated on the main thread; avoids a race where sink is nulled between check and call
         mainHandler.post {
             eventSinkProvider()?.success(resultMap)
         }

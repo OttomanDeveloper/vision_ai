@@ -22,26 +22,29 @@ import java.util.concurrent.ExecutorService
 class CameraManager(
     private val context: Context,
     private val textureRegistry: TextureRegistry,
-    private val analysisExecutor: ExecutorService,
+    private val analysisExecutor: ExecutorService, // frames are delivered on this thread; must be single-threaded
     private val lifecycleOwner: LifecycleOwner,
 ) {
     private var cameraProvider: ProcessCameraProvider? = null
     private var textureEntry: TextureRegistry.SurfaceTextureEntry? = null
-    private var currentFacing: Int = 0
+    private var currentFacing: Int = 0 // 0=front, 1=back; mirrors CameraFacing.index in Dart
 
+    // Returns the Flutter texture id that the Texture widget uses to render the preview.
+    // Blocks the calling thread on ProcessCameraProvider.get() — call off the main thread if latency matters.
     fun start(facing: Int, resolution: Int, frameProcessor: FrameProcessor): Long {
         currentFacing = facing
         val entry = textureRegistry.createSurfaceTexture()
         textureEntry = entry
 
+        // Resolution is a hint; CameraX may choose the nearest available size
         val targetSize = when (resolution) {
-            0 -> Size(320, 240)
-            2 -> Size(1280, 720)
-            else -> Size(640, 480)
+            0 -> Size(320, 240)  // low — suitable for fast gesture detection
+            2 -> Size(1280, 720) // high — better for small faces or distant hands
+            else -> Size(640, 480) // medium default
         }
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        val provider = cameraProviderFuture.get()
+        val provider = cameraProviderFuture.get() // blocking; safe here because start() is called on analysisExecutor
         cameraProvider = provider
 
         val cameraSelector = if (facing == 0) {
@@ -56,11 +59,13 @@ class CameraManager(
             .build()
             .also {
                 it.setSurfaceProvider { request ->
+                    // Resize the surface to match the actual camera resolution CameraX negotiated
                     surfaceTexture.setDefaultBufferSize(
                         request.resolution.width,
                         request.resolution.height
                     )
                     val surface = android.view.Surface(surfaceTexture)
+                    // Surface is released in the callback once CameraX is done with it
                     request.provideSurface(surface, ContextCompat.getMainExecutor(context)) {
                         surface.release()
                     }
@@ -69,14 +74,14 @@ class CameraManager(
 
         val imageAnalysis = ImageAnalysis.Builder()
             .setTargetResolution(targetSize)
-            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888) // avoids per-frame YUV→RGB in ImageConverter
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // drops stale frames instead of queuing; keeps inference latency bounded
             .build()
             .also {
                 it.setAnalyzer(analysisExecutor, frameProcessor)
             }
 
-        provider.unbindAll()
+        provider.unbindAll() // detach any previous session before binding the new one
         provider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
@@ -84,21 +89,24 @@ class CameraManager(
             imageAnalysis
         )
 
-        return entry.id()
+        return entry.id() // Flutter side creates a Texture(textureId: id) with this value
     }
 
+    // Stores the new facing for the next full restart; actual rebind requires a stopCamera/startCamera cycle
     fun switchCamera(facing: Int) {
         currentFacing = facing
         // Rebind would need frameProcessor reference; for now, a full restart is needed
     }
 
+    // Stops frame delivery but does not release the texture entry
     fun stop() {
         cameraProvider?.unbindAll()
     }
 
+    // Releases both camera and the Flutter texture; call this before dropping the CameraManager reference
     fun release() {
         cameraProvider?.unbindAll()
-        textureEntry?.release()
+        textureEntry?.release() // frees the SurfaceTexture so Flutter can reclaim the GL texture slot
         textureEntry = null
         cameraProvider = null
     }

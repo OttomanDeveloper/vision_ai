@@ -39,7 +39,9 @@ class HandConfig {
   final Map<Gesture, double>? gestureThresholds;
 
   const HandConfig({
+    // 2 is the MediaPipe maximum; higher values are clamped natively.
     this.maxHands = 2,
+    // 0.5 balances false positives vs missed detections for typical lighting.
     this.minDetectionConfidence = 0.5,
     this.minPresenceConfidence = 0.5,
     this.minTrackingConfidence = 0.5,
@@ -83,9 +85,12 @@ class FaceConfig {
     this.detectEmotion = true,
     this.detectLandmarks = false,
     this.detectContours = false,
+    // 0.1 catches faces that are reasonably far from the camera without false positives.
     this.minFaceSize = 0.1,
     this.enableTracking = true,
+    // 0.4 keeps a low bar so dominant emotions surface; raise if label flickers.
     this.minEmotionConfidence = 0.4,
+    // false preserves battery; enable only when landmark quality matters.
     this.accurateMode = false,
   });
 }
@@ -112,11 +117,12 @@ class CameraConfig {
   ///
   /// Clamped to 1-60 range when set. Values above device processing speed
   /// have no effect (a device processing at 20 FPS won't emit faster than 20).
-  final int maxResultsPerSecond;
+  final int maxResultsPerSecond; // FPS, 0 = unlimited, clamped to [1, 60] on native side
 
   const CameraConfig({
     this.facing = CameraFacing.front,
     this.resolution = AnalysisResolution.medium,
+    // 0 passes through every frame; non-zero enables native-side token-bucket throttling.
     this.maxResultsPerSecond = 0,
   });
 }
@@ -138,7 +144,9 @@ class CameraConfig {
 /// )
 /// ```
 class CustomGesture {
+  // Returned verbatim as HandResult.customGestureName when this gesture matches.
   final String name;
+  // Omitting a finger from the map makes it a wildcard on the native side.
   final Map<Finger, FingerState> fingerStates;
 
   const CustomGesture({

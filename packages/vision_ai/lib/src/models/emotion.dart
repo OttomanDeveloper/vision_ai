@@ -7,6 +7,7 @@ enum Emotion {
   disgusted,
   fearful,
   neutral,
+  // Sent when emotion detection is disabled or confidence is below the threshold.
   none;
 
   /// Whether an emotion was detected (not [none]).
