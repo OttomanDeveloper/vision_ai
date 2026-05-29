@@ -16,8 +16,13 @@ class FrameProcessor(
     private val resultAggregator: ResultAggregator,
     private val handProcessor: HandGestureProcessor? = null,
     private val faceProcessor: FaceDetectionProcessor? = null,
-    private val isFrontCamera: Boolean = true, // controls horizontal mirror applied during rotation
+    isFrontCamera: Boolean = true,
 ) : ImageAnalysis.Analyzer {
+
+    // Mutable so switchCamera can flip the mirror in place without rebuilding the processor.
+    // @Volatile because analyze() reads it on the analysis thread while switchCamera writes it on the main thread.
+    @Volatile
+    var isFrontCamera: Boolean = isFrontCamera // controls horizontal mirror applied during rotation
 
     private var frameCount = 0L // monotonic counter; never resets across config changes
     val bitmapPool = BitmapPool() // shared with FaceDetectionProcessor to avoid duplicate allocations

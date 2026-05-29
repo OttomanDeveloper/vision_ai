@@ -188,7 +188,12 @@ public class VisionAiPlugin: NSObject, FlutterPlugin {
     // MARK: - switchCamera
 
     private func handleSwitchCamera(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        // switchCamera only stores the facing preference; full stop/start cycle is required
+        let facing = (call.arguments as? [String: Any])?["facing"] as? Int ?? 0
+        // Reconfigure on the analysis queue so it serializes with frame delivery
+        // (CameraManager.currentFacing is read on that queue in captureOutput).
+        analysisQueue.async { [weak self] in
+            self?.cameraManager?.switchCamera(facing: facing)
+        }
         result(nil)
     }
 

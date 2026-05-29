@@ -29,12 +29,35 @@ class CameraManager(
     private var textureEntry: TextureRegistry.SurfaceTextureEntry? = null
     private var currentFacing: Int = 0 // 0=front, 1=back; mirrors CameraFacing.index in Dart
 
+    // Retained from start() so switchCamera can rebind the use cases without a full restart.
+    private var frameProcessor: FrameProcessor? = null
+    private var resolution: Int = 1
+
     // Returns the Flutter texture id that the Texture widget uses to render the preview.
     // Blocks the calling thread on ProcessCameraProvider.get() — call off the main thread if latency matters.
     fun start(facing: Int, resolution: Int, frameProcessor: FrameProcessor): Long {
         currentFacing = facing
+        this.resolution = resolution
+        this.frameProcessor = frameProcessor
+
         val entry = textureRegistry.createSurfaceTexture()
         textureEntry = entry
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        val provider = cameraProviderFuture.get() // blocking; safe here because start() is called on analysisExecutor
+        cameraProvider = provider
+
+        bindUseCases(facing)
+
+        return entry.id() // Flutter side creates a Texture(textureId: id) with this value
+    }
+
+    // Builds the preview + analysis use cases and binds them for the given facing.
+    // Reuses the existing texture entry so the Flutter texture id stays valid across a camera switch.
+    private fun bindUseCases(facing: Int) {
+        val provider = cameraProvider ?: return
+        val entry = textureEntry ?: return
+        val processor = frameProcessor ?: return
 
         // Resolution is a hint; CameraX may choose the nearest available size
         val targetSize = when (resolution) {
@@ -42,10 +65,6 @@ class CameraManager(
             2 -> Size(1280, 720) // high — better for small faces or distant hands
             else -> Size(640, 480) // medium default
         }
-
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        val provider = cameraProviderFuture.get() // blocking; safe here because start() is called on analysisExecutor
-        cameraProvider = provider
 
         val cameraSelector = if (facing == 0) {
             CameraSelector.DEFAULT_FRONT_CAMERA
@@ -78,7 +97,7 @@ class CameraManager(
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST) // drops stale frames instead of queuing; keeps inference latency bounded
             .build()
             .also {
-                it.setAnalyzer(analysisExecutor, frameProcessor)
+                it.setAnalyzer(analysisExecutor, processor)
             }
 
         provider.unbindAll() // detach any previous session before binding the new one
@@ -88,19 +107,17 @@ class CameraManager(
             preview,
             imageAnalysis
         )
-
-        return entry.id() // Flutter side creates a Texture(textureId: id) with this value
     }
 
-    // Stores the new facing for the next full restart; actual rebind requires a stopCamera/startCamera cycle
+    // Rebinds the camera to the new facing in place, reusing the existing Flutter texture so the
+    // preview never drops. No-op if the camera isn't running or the facing is unchanged.
     fun switchCamera(facing: Int) {
+        if (cameraProvider == null || textureEntry == null) return
+        if (facing == currentFacing) return
         currentFacing = facing
-        // Rebind would need frameProcessor reference; for now, a full restart is needed
-    }
-
-    // Stops frame delivery but does not release the texture entry
-    fun stop() {
-        cameraProvider?.unbindAll()
+        // Keep the mirror in sync: front camera frames are mirrored, back camera frames are not.
+        frameProcessor?.isFrontCamera = facing == 0
+        bindUseCases(facing)
     }
 
     // Releases both camera and the Flutter texture; call this before dropping the CameraManager reference
@@ -109,5 +126,6 @@ class CameraManager(
         textureEntry?.release() // frees the SurfaceTexture so Flutter can reclaim the GL texture slot
         textureEntry = null
         cameraProvider = null
+        frameProcessor = null
     }
 }

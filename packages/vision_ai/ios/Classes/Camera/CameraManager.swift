@@ -88,6 +88,37 @@ class CameraManager: NSObject {
         }
     }
 
+    // Switches the active camera in place, reusing the existing capture session and Flutter
+    // texture so the preview never drops. No-op if not running or the facing is unchanged.
+    // Call off the main thread (e.g. the analysis queue) — session reconfiguration can block.
+    func switchCamera(facing: Int) {
+        guard let session = captureSession, facing != currentFacing else { return }
+
+        let position: AVCaptureDevice.Position = facing == 0 ? .front : .back
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
+              let newInput = try? AVCaptureDeviceInput(device: device) else {
+            return // requested camera unavailable; keep the current one
+        }
+
+        session.beginConfiguration()
+        // Swap the camera input; the video output (and its connection) is preserved
+        session.inputs.forEach { session.removeInput($0) }
+        if session.canAddInput(newInput) {
+            session.addInput(newInput)
+        }
+        currentFacing = facing
+        // Re-apply mirroring + orientation: front is mirrored to match Android, back is not
+        if let connection = videoOutput?.connection(with: .video) {
+            if connection.isVideoMirroringSupported {
+                connection.isVideoMirrored = facing == 0
+            }
+            if connection.isVideoOrientationSupported {
+                connection.videoOrientation = .portrait
+            }
+        }
+        session.commitConfiguration()
+    }
+
     func release() {
         captureSession?.stopRunning()
         captureSession = nil

@@ -406,6 +406,15 @@ class _CameraPageState extends State<CameraPage> {
     await _start();
   }
 
+  // Flips between front and back camera live, without a stop/start cycle.
+  // Uses the in-place switchCamera path so the preview texture stays valid.
+  void _flipCamera(CameraFacing current, VisionAi? vision) {
+    final next =
+        current == CameraFacing.front ? CameraFacing.back : CameraFacing.front;
+    _settings.value = _settings.value.copyWith(cameraFacing: next);
+    vision?.switchCamera(next);
+  }
+
   @override
   void dispose() {
     _resultSub?.cancel();
@@ -499,6 +508,20 @@ class _CameraPageState extends State<CameraPage> {
                           },
                         );
                       },
+                    ),
+                    // Live front/back switch — exercises the in-place switchCamera path
+                    // (no stop/start; the preview texture id stays valid).
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: ValueListenableBuilder<_Settings>(
+                        valueListenable: _settings,
+                        builder: (context, s, _) => FloatingActionButton.small(
+                          heroTag: 'flipCamera',
+                          onPressed: () => _flipCamera(s.cameraFacing, cam.vision),
+                          child: const Icon(Icons.cameraswitch),
+                        ),
+                      ),
                     ),
                   ],
                 );
