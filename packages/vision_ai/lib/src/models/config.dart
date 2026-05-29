@@ -73,7 +73,10 @@ class FaceConfig {
   /// Assign stable tracking IDs to faces across frames.
   final bool enableTracking;
 
-  /// Minimum confidence to accept an emotion classification [0.0, 1.0].
+  /// Minimum confidence for an emotion classification [0.0, 1.0].
+  ///
+  /// Currently stored but not enforced — emotion results are returned regardless
+  /// of their confidence. Reserved for future filtering.
   final double minEmotionConfidence;
 
   /// Use ML Kit's accurate detection mode instead of fast mode.

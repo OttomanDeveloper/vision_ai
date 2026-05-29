@@ -6,6 +6,7 @@ import CoreVideo
 // Wraps MediaPipe GestureRecognizer in LIVE_STREAM mode.
 // Result arrives async on a MediaPipe internal thread, stored via @Atomic-like pattern.
 // getLatestResult() returns then clears — stale results never returned twice.
+// GPU (Metal) delegate is attempted first; falls back to CPU if unavailable (matches Android).
 class HandGestureProcessor {
 
     private var gestureRecognizer: GestureRecognizer?
@@ -38,16 +39,28 @@ class HandGestureProcessor {
         self.deniedGestures = deniedGestures
         self.gestureThresholds = gestureThresholds
 
-        let options = GestureRecognizerOptions()
-        options.baseOptions.modelAssetPath = modelPath
-        options.numHands = maxHands
-        options.minHandDetectionConfidence = minDetectionConfidence
-        options.minHandPresenceConfidence = minPresenceConfidence
-        options.minTrackingConfidence = minTrackingConfidence
-        options.runningMode = .liveStream
-        options.gestureRecognizerLiveStreamDelegate = self
+        // Identical options for either delegate so the GPU and CPU paths never drift.
+        func makeOptions(_ delegate: Delegate) -> GestureRecognizerOptions {
+            let options = GestureRecognizerOptions()
+            options.baseOptions.modelAssetPath = modelPath
+            options.baseOptions.delegate = delegate // Metal (GPU) when available
+            options.numHands = maxHands
+            options.minHandDetectionConfidence = minDetectionConfidence
+            options.minHandPresenceConfidence = minPresenceConfidence
+            options.minTrackingConfidence = minTrackingConfidence
+            options.runningMode = .liveStream
+            options.gestureRecognizerLiveStreamDelegate = self
+            return options
+        }
 
-        gestureRecognizer = try GestureRecognizer(options: options)
+        // Attempt GPU (Metal) first, mirror Android by silently falling back to CPU if the
+        // device/simulator can't create a GPU recognizer. Only a CPU failure reaches the caller.
+        do {
+            gestureRecognizer = try GestureRecognizer(options: makeOptions(.GPU))
+        } catch {
+            print("VisionAI.HandGestureProcessor: GPU delegate failed, falling back to CPU — \(error)")
+            gestureRecognizer = try GestureRecognizer(options: makeOptions(.CPU))
+        }
         customClassifier = CustomGestureClassifier(customGestures: customGestures)
     }
 

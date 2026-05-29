@@ -231,7 +231,8 @@ public class VisionAiPlugin: NSObject, FlutterPlugin {
     }
 
     // MARK: - updateFaceConfig
-    // NOTE: detectLandmarks is NOT included here — matches Android behavior exactly
+    // NOTE: detectLandmarks is startCamera-only — preserved here (not read from args), matching
+    // Android and the design. Dart does not send the key in updateFaceConfig.
 
     private func handleUpdateFaceConfig(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard let args = call.arguments as? [String: Any], let fp = faceProcessor else {

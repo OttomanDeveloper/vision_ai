@@ -100,7 +100,7 @@ final faceOnly = VisionAi.face();
 | `results` | `Stream<VisionResult>` | Per-frame detection results. Active between `start()` and `stop()`. |
 | `updateHandConfig(config)` | `Future<void>` | Hot-swap hand settings while running. Requires restart for some changes. |
 | `updateFaceConfig(config)` | `Future<void>` | Hot-swap face settings while running. |
-| `switchCamera(facing)` | `Future<void>` | Switch front/back. Requires stop+start to take effect. |
+| `switchCamera(facing)` | `Future<void>` | Switch front/back live while running (in-place; the preview keeps rendering). |
 | `isRunning` | `bool` | Whether the camera is actively processing frames. |
 
 ### VisionResult
@@ -644,7 +644,7 @@ flutter run
 - Try accurate mode for face detection
 - Define a custom "rock" gesture out of the box
 
-All toggles apply instantly for overlay settings. Detection and camera changes require a restart (tap Stop then Start). When you disable hand or face detection, all related sub-settings and overlay options disappear automatically and reset to defaults.
+All toggles apply instantly for overlay settings. Switching the front/back camera applies live while running (no restart). Other detection and camera changes require a restart (tap Stop then Start). When you disable hand or face detection, all related sub-settings and overlay options disappear automatically and reset to defaults.
 
 The example also serves as a reference implementation showing how to use `ValueNotifier` + `ValueListenableBuilder` instead of `setState` for reactive state management with this package.
 

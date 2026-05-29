@@ -1,3 +1,21 @@
+## 0.2.0 - 2026-05-30
+
+### Features
+- **Live camera switching** — `switchCamera()` now flips between the front and back camera in place while running, with no stop/start cycle. The preview keeps rendering (the texture stays valid) and detection continues uninterrupted. Previously this was effectively a no-op that required a manual restart.
+
+### Performance (iOS)
+- Hand gesture recognition now uses the GPU (Metal) delegate with automatic CPU fallback, matching Android (was CPU-only).
+- Emotion preprocessing reuses per-frame buffers via `PixelBufferPool` and fills the TFLite input buffer in place, removing repeated per-frame allocations in the face pipeline.
+
+### Behavior
+- `detectLandmarks` is now consistently a start-time-only option on both platforms: `updateFaceConfig` preserves the value set at `startCamera` rather than changing it (Android could previously reset it at runtime). Toggle it via `startCamera`/restart.
+
+### Fixes & cleanup
+- Removed dead `CameraManager.stop()` on Android (`stopCamera` already routes through `release()`).
+- Clarified in docs that `minEmotionConfidence` is currently stored but not enforced (no behavior change).
+
+> **iOS note:** the iOS items above ship as part of the ongoing iOS Beta and have not yet been built/profiled on a physical device. See the **iOS Beta** section of the README — device testing is welcome.
+
 ## 0.1.1 - 2026-05-25
 
 ### Fixes

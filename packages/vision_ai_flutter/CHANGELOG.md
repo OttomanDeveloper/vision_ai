@@ -1,3 +1,7 @@
+## 0.2.0 - 2026-05-30
+
+- Bumped to require `vision_ai` ^0.2.0 (live `switchCamera`, iOS performance improvements). No widget API or behavior changes in this package.
+
 ## 0.1.1 - 2026-05-25
 
 - Added inline comments to all painters, widgets, and styles

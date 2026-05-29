@@ -85,7 +85,7 @@ class FaceDetectionProcessor {
 
             if detectEmotion, let classifier = emotionClassifier {
                 if let croppedFace = cropFace(pixelBuffer: pixelBuffer, boundingBox: face.frame, imageWidth: imageWidth, imageHeight: imageHeight, pool: pool) {
-                    emotionResult = classifier.classify(faceImage: croppedFace)
+                    emotionResult = classifier.classify(faceImage: croppedFace, pool: pool)
                 }
             }
 

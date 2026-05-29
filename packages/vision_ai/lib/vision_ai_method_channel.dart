@@ -115,7 +115,8 @@ class VisionAiMethodChannel extends VisionAiPlatform {
   Future<void> updateFaceConfig(FaceConfig config) =>
       _commandChannel.invokeMethod<void>('updateFaceConfig', {
         'detectEmotion': config.detectEmotion,
-        'detectLandmarks': config.detectLandmarks,
+        // detectLandmarks is intentionally omitted: it is startCamera-only. Both native sides
+        // preserve the value set at startCamera, so it cannot be hot-swapped via updateFaceConfig.
         'detectContours': config.detectContours,
         'minFaceSize': config.minFaceSize,
         'enableFaceTracking': config.enableTracking,

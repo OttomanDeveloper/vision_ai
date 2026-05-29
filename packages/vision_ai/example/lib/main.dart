@@ -406,13 +406,23 @@ class _CameraPageState extends State<CameraPage> {
     await _start();
   }
 
-  // Flips between front and back camera live, without a stop/start cycle.
-  // Uses the in-place switchCamera path so the preview texture stays valid.
-  void _flipCamera(CameraFacing current, VisionAi? vision) {
-    final next =
-        current == CameraFacing.front ? CameraFacing.back : CameraFacing.front;
-    _settings.value = _settings.value.copyWith(cameraFacing: next);
-    vision?.switchCamera(next);
+  // Toggles to the other camera (used by the preview FAB).
+  void _flipCamera(CameraFacing current) {
+    _onFacingSelected(
+      current == CameraFacing.front ? CameraFacing.back : CameraFacing.front,
+    );
+  }
+
+  // Applies a chosen camera facing. Updates settings and, if the camera is already running,
+  // switches live via the in-place switchCamera path (no stop/start; the preview texture stays valid).
+  // Shared by the preview FAB and the Settings sheet so both behave identically.
+  void _onFacingSelected(CameraFacing facing) {
+    if (_settings.value.cameraFacing == facing) return;
+    _settings.value = _settings.value.copyWith(cameraFacing: facing);
+    final cam = _camera.value;
+    if (cam.isRunning) {
+      cam.vision?.switchCamera(facing);
+    }
   }
 
   @override
@@ -433,7 +443,10 @@ class _CameraPageState extends State<CameraPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => _SettingsSheet(settings: _settings),
+      builder: (_) => _SettingsSheet(
+        settings: _settings,
+        onFacingChanged: _onFacingSelected,
+      ),
     );
   }
 
@@ -518,7 +531,7 @@ class _CameraPageState extends State<CameraPage> {
                         valueListenable: _settings,
                         builder: (context, s, _) => FloatingActionButton.small(
                           heroTag: 'flipCamera',
-                          onPressed: () => _flipCamera(s.cameraFacing, cam.vision),
+                          onPressed: () => _flipCamera(s.cameraFacing),
                           child: const Icon(Icons.cameraswitch),
                         ),
                       ),
@@ -793,8 +806,9 @@ class _StatsOverlay extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _SettingsSheet extends StatelessWidget {
   final ValueNotifier<_Settings> settings;
+  final void Function(CameraFacing facing) onFacingChanged;
 
-  const _SettingsSheet({required this.settings});
+  const _SettingsSheet({required this.settings, required this.onFacingChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -990,7 +1004,9 @@ class _SettingsSheet extends StatelessWidget {
                     'Camera',
                     {CameraFacing.front: 'Front', CameraFacing.back: 'Back'},
                     s.cameraFacing,
-                    (v) => settings.value = s.copyWith(cameraFacing: v),
+                    // Switches live while running (same path as the preview flip button);
+                    // applies on next start if the camera isn't running yet.
+                    onFacingChanged,
                   ),
                   const SizedBox(height: 12),
                   _segmented<AnalysisResolution>(

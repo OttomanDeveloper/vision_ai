@@ -253,7 +253,9 @@ class VisionAiPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
         }
 
         val detectEmotion = call.argument<Boolean>("detectEmotion") ?: true
-        val detectLandmarks = call.argument<Boolean>("detectLandmarks") ?: false
+        // detectLandmarks is startCamera-only (matches iOS + design): preserve the existing value
+        // rather than reading the call args, so updateFaceConfig can never reset it.
+        val detectLandmarks = faceProcessor!!.detectLandmarks
         val detectContours = call.argument<Boolean>("detectContours") ?: false
         val minFaceSize = call.argument<Double>("minFaceSize")?.toFloat() ?: 0.1f
         val enableTracking = call.argument<Boolean>("enableFaceTracking") ?: true

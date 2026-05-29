@@ -25,8 +25,8 @@ class FaceDetectionProcessor(private val context: Context) {
     private var emotionClassifier: EmotionClassifier? = null
     private var detectEmotion = true
     private var detectContours = false
-    private var detectLandmarks = false
-    private var minEmotionConfidence = 0.4f // results below this threshold are discarded as unreliable
+    var detectLandmarks = false // readable so VisionAiPlugin can preserve it across updateFaceConfig (matches iOS)
+    private var minEmotionConfidence = 0.4f // stored but not enforced; reserved for future emotion-confidence filtering (matches iOS)
 
     fun initialize(
         detectEmotion: Boolean = true,

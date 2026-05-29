@@ -11,18 +11,19 @@ class PixelBufferPool {
     private var faceCropWidth = 0
     private var faceCropHeight = 0
 
-    // TFLite input data buffer — reused across inferences
+    // TFLite input data buffer — reused across inferences (lent via borrow/return)
     private var tfliteInputData: Data?
-    private var tfliteInputSize = 0
 
-    // Pixel extraction array — reused for CGContext rendering
+    // Pixel extraction array — reused for CGContext rendering (lent via borrow/return)
     private var pixelArray: [UInt8]?
-    private var pixelArraySize = 0
 
     // CIContext is expensive to create — reuse across frames
     let ciContext = CIContext(options: [.useSoftwareRenderer: false])
 
-    // MARK: - Face crop buffer
+    // MARK: - Face crop buffer (reserved — intentionally unwired)
+    // The emotion pipeline crops via CGImage and the face box is a different size every frame, so a
+    // fixed CVPixelBuffer pool would rarely hit. Kept per the iOS design for a future fixed-size
+    // CVPixelBuffer crop path; the expensive CIContext it would use is already reused above.
 
     func getFaceCropBuffer(width: Int, height: Int) -> CVPixelBuffer? {
         if width == faceCropWidth && height == faceCropHeight, let existing = faceCropBuffer {
@@ -49,31 +50,35 @@ class PixelBufferPool {
         return newBuffer
     }
 
-    // MARK: - TFLite input data
+    // MARK: - TFLite input data (borrow/return)
 
-    func getTfliteInputData(size: Int) -> Data {
-        if size == tfliteInputSize, var existing = tfliteInputData {
-            // Zero-fill for reuse
-            existing.resetBytes(in: 0..<size)
-            tfliteInputData = existing
+    // Borrowing drops the pool's own reference so the caller mutates a uniquely-owned buffer —
+    // otherwise Swift copy-on-write would copy on every frame and defeat the pooling entirely.
+    // The caller fully overwrites the bytes and MUST call returnTfliteInputData() when done (use defer).
+    func borrowTfliteInputData(size: Int) -> Data {
+        if let existing = tfliteInputData, existing.count == size {
+            tfliteInputData = nil // relinquish our reference → no COW when the caller fills it
             return existing
         }
-        let data = Data(count: size)
-        tfliteInputData = data
-        tfliteInputSize = size
-        return data
+        return Data(count: size)
     }
 
-    // MARK: - Pixel extraction array
+    func returnTfliteInputData(_ data: Data) {
+        tfliteInputData = data
+    }
 
-    func getPixelArray(size: Int) -> [UInt8] {
-        if size == pixelArraySize, let existing = pixelArray {
+    // MARK: - Pixel extraction array (borrow/return)
+
+    func borrowPixelArray(size: Int) -> [UInt8] {
+        if let existing = pixelArray, existing.count == size {
+            pixelArray = nil // relinquish our reference → CGContext can draw into it without a COW copy
             return existing
         }
-        let array = [UInt8](repeating: 0, count: size)
+        return [UInt8](repeating: 0, count: size)
+    }
+
+    func returnPixelArray(_ array: [UInt8]) {
         pixelArray = array
-        pixelArraySize = size
-        return array
     }
 
     // MARK: - Cleanup
@@ -83,8 +88,6 @@ class PixelBufferPool {
         faceCropWidth = 0
         faceCropHeight = 0
         tfliteInputData = nil
-        tfliteInputSize = 0
         pixelArray = nil
-        pixelArraySize = 0
     }
 }
